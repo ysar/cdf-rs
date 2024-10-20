@@ -1,6 +1,6 @@
 
 /// A CDF file contains 2 or more internal records that organize the contents of the CDF.
-pub enum InternalRecord {
+pub enum InternalRecordTypes {
     
     /// Unused Internal Record
     UIR = -1,
@@ -50,4 +50,29 @@ pub enum InternalRecord {
 
 }
 
+#[cfg(test)]
+mod tests {
 
+    use std::fs::File;
+    use std::io::Read;
+    use std::path::PathBuf;
+
+    #[test]
+    fn read_magic_number() {
+        
+        let path_test_file: PathBuf = [
+            env!("CARGO_MANIFEST_DIR"),
+            "tests",
+            "data",
+            "test_alltypes.cdf",
+        ].iter().collect();
+        
+        let mut file = File::open(path_test_file).unwrap();
+        
+        let mut buf = [0u8; 4];
+        file.read_exact(&mut buf[..]).unwrap();
+        let magic_number = u32::from_be_bytes(buf);
+
+        assert_eq!(magic_number, 0xcdf30001u32);
+    }
+}
