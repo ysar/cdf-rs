@@ -1,6 +1,8 @@
 [package]
-name = "cdf"
+name = "cdf_nasa"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+semver = "1.0.23"
+thiserror = "1.0.65"
