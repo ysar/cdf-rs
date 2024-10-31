@@ -9,3 +9,6 @@ pub mod record;
 
 /// Module associated with the overall structure of a CDF file. Contains the CdfFile struct.
 pub mod cdf;
+
+/// Implement Decode and Encode for standard types.
+mod impls;

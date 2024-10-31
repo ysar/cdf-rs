@@ -22,4 +22,3 @@ pub enum EncodeError {
     #[error("{0:}")]
     Other(String),
 }
-
