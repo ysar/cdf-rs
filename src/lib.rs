@@ -12,3 +12,6 @@ pub mod cdf;
 
 /// Implement Decode and Encode for standard types.
 mod impls;
+
+/// Details on how different types are to encoded or decoded.
+mod repr;
