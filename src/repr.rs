@@ -15,7 +15,7 @@ pub enum Encoding {
     /// IBM RS-6000 Representation
     IbmRs = 7,
     /// Macintosh Power PC Representation
-    Ppc = 9,
+    MacPpc = 9,
     /// HP 9000 Series Representation
     Hp = 11,
     /// NeXT Representation
@@ -28,17 +28,17 @@ pub enum Encoding {
     /// DEC Alpha/Open VMS Representation (Double precision floats in G_FLOAT
     /// encoding)
     AlphaVmsG = 15,
-    /// DEC Alpha/Open VMS Representation (Single/Double precision floats in 
+    /// DEC Alpha/Open VMS Representation (Single/Double precision floats in
     /// IEEE 754 encoding)
     AlphaVmsI = 16,
     /// ARM little-endian Representation
     ArmLittle = 17,
     /// ARM big-endian Representation
     ArmBig = 18,
-    /// Itanium 64 on OpenVMS Representation (Single/Double precision floats 
+    /// Itanium 64 on OpenVMS Representation (Single/Double precision floats
     /// in IEEE 754 encoding)
     Ia64VmsI = 19,
-    /// Itanium 64 on OpenVMS Representation (Single/Double precision floats 
+    /// Itanium 64 on OpenVMS Representation (Single/Double precision floats
     /// in Digital D_FLOAT encoding)
     Ia64VmsD = 20,
     /// Itanium 64 on OpenVMS Representation (Single/Double precision floats

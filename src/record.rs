@@ -1,7 +1,5 @@
 use std::io;
 
-use crate::traits::Decode;
-
 pub mod adr;
 pub mod agredr;
 pub mod azedr;
@@ -32,21 +30,21 @@ pub struct InternalRecord {
     record: InternalRecordType,
 }
 
-impl<R> Decode<R> for InternalRecord
-where
-    R: io::Read,
-{
-    type Output = InternalRecord;
-
-    fn decode(reader: R) -> Result<Self::Output, crate::error::DecodeError> {
-        // The decoder has to figure out what kind of record it is first. Note that CDF is a
-        // self-describing format, so this is possible.
-        //let record_size = i64::decode(reader)?;
-        //let record_type = i32::decode(reader)?;
-        //
-        //match record_type {
-        //    InternalRecordType::CDR(_) =>
-        //}
-        todo!();
-    }
-}
+//impl<R> Decode<R> for InternalRecord
+//where
+//    R: io::Read,
+//{
+//    type Output = InternalRecord;
+//
+//    fn decode(reader: R) -> Result<Self::Output, crate::error::DecodeError> {
+//        // The decoder has to figure out what kind of record it is first. Note that CDF is a
+//        // self-describing format, so this is possible.
+//        //let record_size = i64::decode(reader)?;
+//        //let record_type = i32::decode(reader)?;
+//        //
+//        //match record_type {
+//        //    InternalRecordType::CDR(_) =>
+//        //}
+//        todo!();
+//    }
+//}

@@ -2,16 +2,11 @@
 pub mod error;
 
 /// Module for traits common to this library, e.g. `Decode` or `Encode`.
-pub mod traits;
+///
+/// pub mod traits;
+pub mod decode;
+pub mod repr;
+pub mod types;
 
 /// Module containing structs for different kinds of CDF records.
 pub mod record;
-
-/// Module associated with the overall structure of a CDF file. Contains the CdfFile struct.
-pub mod cdf;
-
-/// Implement Decode and Encode for standard types.
-mod impls;
-
-/// Details on how different types are to encoded or decoded.
-mod repr;
