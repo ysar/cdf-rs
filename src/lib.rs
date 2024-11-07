@@ -1,3 +1,6 @@
+///
+/// 
+///
 /// Error types for the crate.
 pub mod error;
 

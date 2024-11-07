@@ -2,11 +2,15 @@ use std::{io, mem};
 
 use crate::error::DecodeError;
 use crate::repr::Encoding;
+use crate::types::{Char, Real4, Real8, Uchar, Uint1, Uint2, Uint4, Int1, Int2, Int4, Int8};
 
 /// Trait for decoding a CDF result from a reader.
-pub trait Decode: Sized {
+pub trait Decodable {
+
+    type Value;
+
     /// Decode a value from the input that implements `io::Read`.
-    fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>;
+    fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>;
 }
 
 /// Struct containing the reader and decoding configurations.
@@ -15,12 +19,14 @@ pub struct Decoder<R: io::Read> {
     pub encoding: Encoding,
 }
 
-macro_rules! impl_decode_ints {
-    ($($t:ident), *) => {
-        $(
-            impl Decode for $t {
+macro_rules! impl_decodable_ints {
+    ($t:ident, $inner:ident) => {
+            impl Decodable for $t {
+
+                type Value = $t;
+
                 fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
-                    let mut buffer = [0u8; mem::size_of::<$t>()];
+                    let mut buffer = [0u8; <$t>::size()];
 
                     decoder
                         .reader
@@ -40,17 +46,20 @@ macro_rules! impl_decode_ints {
                     }
                 }
             }
-        )*
     }
 }
 
-impl_decode_ints!(u8, u16, u32);
-impl_decode_ints!(i8, i16, i32, i64);
+impl_decodable_ints!(Uint1, u8);
+// Uint2, Uint4);
+impl_decodable_ints!(Int1, Int2, Int4, Int8);
 
-macro_rules! impl_decode_floats {
+macro_rules! impl_decodable_floats {
     ($($t:ident), *) => {
         $(
-            impl Decode for $t {
+            impl Decodable for $t {
+
+                type Value = $t;
+
                 fn decode<R: io::Read>(decoder:&mut Decoder<R>) -> Result<Self, DecodeError> {
                     let mut buffer = [0u8; mem::size_of::<$t>()];
 
@@ -86,11 +95,14 @@ macro_rules! impl_decode_floats {
     }
 }
 
-impl_decode_floats!(f32, f64);
+impl_decodable_floats!(Real4, Real8);
 
-impl Decode for char {
+impl Decodable for Char {
+    
+    type Value = Char;
+
     fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
-        Ok(u8::decode(decoder)? as char)
+        Ok(i8::decode(decoder)? as char)
     }
 }
 
