@@ -1,6 +1,5 @@
-use crate::decode::{Decode, Decoder};
 use crate::error::DecodeError;
-use std::io;
+use std::{io, mem};
 
 /// Data types supported by the CDF format.
 #[repr(u8)]
@@ -45,39 +44,67 @@ pub enum CdfType {
     Uchar = 52,
 }
 
-pub struct Int1(i8);
-pub struct Int2(i16);
-pub struct Int4(i32);
-pub struct Int8(i64);
-pub struct Uint1(u8);
-pub struct Uint2(u16);
-pub struct Uint4(u32);
-pub struct Real4(f32);
-pub struct Real8(f64);
-pub struct Epoch(f64);
-pub struct Epoch16(f64, f64);
-pub struct TimeTt2000(i64);
-pub struct Byte(i8);
-pub struct Char(i8);
-pub struct Uchar(u8);
-pub type Float = Real4;
-pub type Double = Real8;
+macro_rules! impl_cdf_type {
+    ($name:ident, $t:ty) => {
+        pub struct $name($t);
 
-macro_rules! impl_size_cdf_types {
-    ($($name:ident, $size:literal), *) => {
-        $( impl $name {
-            pub const fn size() -> usize { $size }
+        impl $name {
+            pub const fn size() -> usize {
+                mem::size_of::<$t>()
+            }
+
+            pub fn from_ne_bytes(bytes: [u8; Self::size()]) -> Self {
+                Self(<$t>::from_ne_bytes(bytes))
+            }
+            pub fn from_be_bytes(bytes: [u8; Self::size()]) -> Self {
+                Self(<$t>::from_be_bytes(bytes))
+            }
+            pub fn from_le_bytes(bytes: [u8; Self::size()]) -> Self {
+                Self(<$t>::from_le_bytes(bytes))
+            }
+            pub fn to_ne_bytes(self) -> [u8; Self::size()] {
+                <$t>::to_ne_bytes(self.0)
+            }
+            pub fn to_be_bytes(self) -> [u8; Self::size()] {
+                <$t>::to_be_bytes(self.0)
+            }
+            pub fn to_le_bytes(self) -> [u8; Self::size()] {
+                <$t>::to_le_bytes(self.0)
+            }
         }
-        )*
+
+        impl From<$t> for $name {
+            fn from(value: $t) -> Self {
+                $name(value)
+            }
+        }
     };
 }
 
-impl_size_cdf_types!(Int1, 1, Int2, 2, Int4, 4, Int8, 8);
-impl_size_cdf_types!(Uint1, 1, Uint2, 2, Uint4, 4);
-impl_size_cdf_types!(Real4, 4, Real8, 8);
-impl_size_cdf_types!(Epoch, 8, Epoch16, 16);
-impl_size_cdf_types!(TimeTt2000, 8, Byte, 1, Char, 1, Uchar, 1);
+impl_cdf_type!(Int1, i8);
+impl_cdf_type!(Int2, i16);
+impl_cdf_type!(Int4, i32);
+impl_cdf_type!(Int8, i64);
+impl_cdf_type!(Uint1, u8);
+impl_cdf_type!(Uint2, u16);
+impl_cdf_type!(Uint4, u32);
+impl_cdf_type!(Real4, f32);
+impl_cdf_type!(Real8, f64);
+impl_cdf_type!(Epoch, f64);
+impl_cdf_type!(TimeTt2000, i64);
+impl_cdf_type!(Byte, i8);
+impl_cdf_type!(Char, i8);
+impl_cdf_type!(Uchar, u8);
+pub type Float = Real4;
+pub type Double = Real8;
 
+pub struct Epoch16(Real8, Real8);
+
+impl Epoch16 {
+    pub const fn size() -> usize {
+        16
+    }
+}
 
 //pub fn decode_cdf_type<R>(
 //    decoder: &mut Decoder<R>,
