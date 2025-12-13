@@ -1,51 +1,15 @@
+/// The CDF format supports different data types like ints and floats of
+/// different sizes. This module defines these fundamental types (CdfXXXX) and
+/// there conversions from and into byte arrays and native Rust types.
+use crate::decode::{Decodable, Decoder};
 use crate::error::DecodeError;
-use std::{io, mem};
-
-/// Data types supported by the CDF format.
-#[repr(u8)]
-#[derive(Debug, PartialEq)]
-pub enum CdfType {
-    /// 1-byte signed integer
-    Int1 = 1,
-    /// 2-byte signed integer
-    Int2 = 2,
-    /// 4-byte signed integer
-    Int4 = 4,
-    /// 8-byte signed integer
-    Int8 = 8,
-    /// 1-byte unsigned integer
-    Uint1 = 11,
-    /// 2-byte unsigned integer
-    Uint2 = 12,
-    /// 4-byte unsigned integer
-    Uint4 = 14,
-    /// 4-byte single-precision floating-point
-    Real4 = 21,
-    /// 8-byte double-precision floating-point
-    Real8 = 22,
-    /// 8-byte double-precision floating-point. Represents the number of milliseconds since epoch
-    /// 0000-01-01T00:00:00.000 .
-    Epoch = 31,
-    /// 2 8-byte double-precision floating-point. Similar to `Epoch` but can store much higher
-    /// resolution, down to pico-seconds.
-    Epoch16 = 32,
-    /// 8-byte signed integer. Nano-seconds from J2000 (2000-01-01T12:00), with leap seconds
-    /// included.
-    TimeTt2000 = 33,
-    /// 1-byte signed integer (equivalent to `Int1`)
-    Byte = 41,
-    /// 4-byte single-precision floating-point (equivalent to `Real4`)
-    Float = 44,
-    /// 8-byte double-precision floating-point (equivalent to `Real8`)
-    Double = 45,
-    /// 1-byte signed character (ASCII)
-    Char = 51,
-    /// 1-byte unsigned character (ASCII)
-    Uchar = 52,
-}
+use crate::repr::Endian;
+use std::io;
+use std::mem;
 
 macro_rules! impl_cdf_type {
     ($name:ident, $t:ty) => {
+        #[derive(Debug, PartialEq)]
         pub struct $name($t);
 
         impl $name {
@@ -78,85 +42,116 @@ macro_rules! impl_cdf_type {
                 $name(value)
             }
         }
+
+        impl Into<$t> for $name {
+            fn into(self) -> $t {
+                self.0
+            }
+        }
     };
 }
 
-impl_cdf_type!(Int1, i8);
-impl_cdf_type!(Int2, i16);
-impl_cdf_type!(Int4, i32);
-impl_cdf_type!(Int8, i64);
-impl_cdf_type!(Uint1, u8);
-impl_cdf_type!(Uint2, u16);
-impl_cdf_type!(Uint4, u32);
-impl_cdf_type!(Real4, f32);
-impl_cdf_type!(Real8, f64);
-impl_cdf_type!(Epoch, f64);
-impl_cdf_type!(TimeTt2000, i64);
-impl_cdf_type!(Byte, i8);
-impl_cdf_type!(Char, i8);
-impl_cdf_type!(Uchar, u8);
-pub type Float = Real4;
-pub type Double = Real8;
+impl_cdf_type!(CdfInt1, i8);
+impl_cdf_type!(CdfInt2, i16);
+impl_cdf_type!(CdfInt4, i32);
+impl_cdf_type!(CdfInt8, i64);
+impl_cdf_type!(CdfUint1, u8);
+impl_cdf_type!(CdfUint2, u16);
+impl_cdf_type!(CdfUint4, u32);
+impl_cdf_type!(CdfReal4, f32);
+impl_cdf_type!(CdfReal8, f64);
+impl_cdf_type!(CdfEpoch, f64);
+impl_cdf_type!(CdfTimeTt2000, i64);
+impl_cdf_type!(CdfByte, i8);
+impl_cdf_type!(CdfChar, i8);
+impl_cdf_type!(CdfUchar, u8);
+// pub type CdfFloat = CdfReal4;
+// pub type CdfDouble = CdfReal8;
 
-pub struct Epoch16(Real8, Real8);
+pub struct CdfEpoch16(CdfReal8, CdfReal8);
 
-impl Epoch16 {
+impl CdfEpoch16 {
     pub const fn size() -> usize {
         16
     }
 }
 
-//pub fn decode_cdf_type<R>(
-//    decoder: &mut Decoder<R>,
-//    val_type: CdfType,
-//) -> Result<CdfType, DecodeError>
-//where
-//    R: io::Read,
-//{
-//    match val_type {
-//        CdfType::Int1 => Ok(CdfInt1::decode(decoder)?),
-//        CdfType::Int2 => Ok(CdfInt2::decode(decoder)?),
-//        CdfType::Int4 => Ok(CdfInt4::decode(decoder)?),
-//        CdfType::Int8 => Ok(CdfInt8::decode(decoder)?),
-//        CdfType::Uint1 => Ok(CdfUint1::decode(decoder)?),
-//        CdfType::Uint2 => Ok(CdfUint2::decode(decoder)?),
-//        CdfType::Uint4 => Ok(CdfUint4::decode(decoder)?),
-//        CdfType::Real4 => Ok(CdfReal4::decode(decoder)?),
-//        CdfType::Real8 => Ok(CdfReal8::decode(decoder)?),
-//        CdfType::Epoch => Ok(CdfEpoch::decode(decoder)?),
-//        CdfType::Epoch16 => {
-//            let v1 = f64::decode(decoder)?;
-//            let v2 = f64::decode(decoder)?;
-//            Ok((v1, v2))
-//        }
-//        CdfType::TimeTt2000 => Ok(CdfTimeTt2000::decode(decoder)?),
-//        CdfType::Byte => Ok(CdfByte::decode(decoder)?),
-//        CdfType::Float => Ok(CdfFloat::decode(decoder)?),
-//        CdfType::Double => Ok(CdfDouble::decode(decoder)?),
-//        CdfType::Char => Ok(CdfChar::decode(decoder)?),
-//        CdfType::Uchar => Ok(CdfUchar::decode(decoder)?),
-//        _ => Err(DecodeError::Other("".to_string())),
-//    }
-//}
-//
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-//    use crate::decode::Decoder;
-//    use crate::repr::Encoding;
-//
-//    #[test]
-//    fn test_cdftype_int1() -> Result<(), DecodeError> {
-//        let val = 7i8.to_be_bytes();
-//        let mut decoder = Decoder {
-//            reader: val.as_slice(),
-//            encoding: Encoding::Network,
-//        };
-//        assert_eq!(
-//            CdfType::Int1(7i8),
-//            decode_cdf_type(&mut decoder, CdfType::Int1(0))?
-//        );
-//
-//        Ok(())
-//    }
-//}
+// Each CdfType is encoded/decoded in little or big-endian format depending on the type of
+// CdfEncoding that is used.
+
+macro_rules! impl_decodable {
+    ($($t:ident), *) => {
+        $(
+            impl Decodable for $t {
+
+                type Value = $t;
+
+                fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
+                    let mut buffer = [0u8; <$t>::size()];
+
+                    decoder
+                        .reader
+                        .read_exact(&mut buffer[..])
+                        .map_err(|err| DecodeError::Other(format!("{err}")))?;
+
+                    match decoder.encoding {
+                        Endian::Big => Ok($t::from_be_bytes(buffer)),
+                        Endian::Little => Ok($t::from_le_bytes(buffer)),
+                    }
+                }
+            }
+        )*
+    }
+}
+
+impl_decodable!(CdfUint1, CdfUint2, CdfUint4);
+impl_decodable!(CdfInt1, CdfInt2, CdfInt4, CdfInt8);
+impl_decodable!(CdfTimeTt2000, CdfByte, CdfChar, CdfUchar);
+impl_decodable!(CdfReal4, CdfReal8);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::decode::Decoder;
+    use crate::error::CdfError;
+    use crate::repr::CdfEncoding;
+    use paste::paste;
+
+    macro_rules! test_type {
+        ($t1:ty, $t2:ty, $val:literal) => {
+            paste! {
+                #[test]
+                fn [< test_convert_ $t1:lower _ $t2 >]() {
+                    let x: $t2 = $val;
+                    let y: $t1 = x.into();
+                    assert_eq!(x, y.into());
+                }
+
+                #[test]
+                fn [< test_decode_ $t1:lower _ $t2 >]() -> Result<(), CdfError> {
+                    let x: $t2 = $val;
+                    let y = x.to_be_bytes();
+                    let mut decoder = Decoder::new(y.as_slice(), CdfEncoding::Network)?;
+                    assert_eq!($t1(x), $t1::decode(&mut decoder)?);
+
+                    Ok(())
+                }
+            }
+        };
+    }
+
+    test_type!(CdfInt1, i8, -7);
+    test_type!(CdfInt2, i16, -7);
+    test_type!(CdfInt4, i32, -7);
+    test_type!(CdfInt8, i64, -7);
+    test_type!(CdfByte, i8, -7);
+    test_type!(CdfChar, i8, -7);
+    test_type!(CdfTimeTt2000, i64, -7);
+    test_type!(CdfUint1, u8, 7);
+    test_type!(CdfUint2, u16, 7);
+    test_type!(CdfUint4, u32, 7);
+    test_type!(CdfUchar, u8, 7);
+    test_type!(CdfReal4, f32, -7.0);
+    test_type!(CdfReal8, f64, -7.0);
+    // test_float!(CdfEpoch, f64);
+}

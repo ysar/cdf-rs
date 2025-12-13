@@ -1,5 +1,5 @@
 [package]
-name = "cdf_nasa"
+name = "cdf_rs"
 version = "0.1.0"
 edition = "2021"
 

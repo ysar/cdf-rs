@@ -3,6 +3,18 @@ use std::io;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+pub enum CdfError {
+    #[error("{0:}")]
+    Decode(#[from] DecodeError),
+
+    #[error("{0:}")]
+    Encode(#[from] EncodeError),
+
+    #[error("{0:}")]
+    Other(String),
+}
+
+#[derive(Error, Debug)]
 pub enum DecodeError {
     #[error("{0:}")]
     IoError(#[from] io::Error),

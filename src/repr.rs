@@ -1,5 +1,8 @@
+use crate::error::CdfError;
+
 /// Data Encodings used in CDF (from CDF specification Table 5.11).
-pub enum Encoding {
+#[derive(Debug)]
+pub enum CdfEncoding {
     /// eXternal Data Representation
     Network = 1,
     /// Sun Representation
@@ -44,4 +47,34 @@ pub enum Encoding {
     /// Itanium 64 on OpenVMS Representation (Single/Double precision floats
     /// in Digital G_FLOAT encoding)
     Ia64VmsG = 21,
+}
+
+impl CdfEncoding {
+    /// Returns the endianness associated with this CDF data encoding.
+    pub fn get_endian(&self) -> Result<Endian, CdfError> {
+        match &self {
+            CdfEncoding::Network
+            | CdfEncoding::Sun
+            | CdfEncoding::Next
+            | CdfEncoding::MacPpc
+            | CdfEncoding::Sgi
+            | CdfEncoding::IbmRs
+            | CdfEncoding::ArmBig => Ok(Endian::Big),
+
+            CdfEncoding::DecStation
+            | CdfEncoding::IbmPc
+            | CdfEncoding::AlphaOsf1
+            | CdfEncoding::AlphaVmsI
+            | CdfEncoding::ArmLittle
+            | CdfEncoding::Ia64VmsI => Ok(Endian::Little),
+
+            _ => Err(CdfError::Other(
+                "Encoding {self:?} not implemented.".to_string(),
+            )),
+        }
+    }
+}
+pub enum Endian {
+    Big,
+    Little,
 }
