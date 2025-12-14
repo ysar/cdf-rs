@@ -5,6 +5,7 @@ use crate::repr::{CdfEncoding, Endian};
 
 /// Trait for decoding a CDF result from a reader.
 pub trait Decodable {
+    /// The value that is returned after decoding.
     type Value;
 
     /// Decode a value from the input that implements `io::Read`.
@@ -13,7 +14,9 @@ pub trait Decodable {
 
 /// Struct containing the reader and decoding configurations.
 pub struct Decoder<R: io::Read> {
+    /// A reader is some object that implements the [io::Read] trait.
     pub reader: R,
+    /// The endianness corresponding to this decoder.
     pub encoding: Endian,
 }
 
