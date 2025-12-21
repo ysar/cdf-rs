@@ -12,6 +12,10 @@ pub enum CdfError {
     #[error("{0:}")]
     Encode(#[from] EncodeError),
 
+    /// Any IO error.
+    #[error("{0:}")]
+    IoError(#[from] io::Error),
+
     /// Any other error
     #[error("{0:}")]
     Other(String),

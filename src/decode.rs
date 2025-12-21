@@ -1,7 +1,7 @@
 use std::io;
 
 use crate::error::{CdfError, DecodeError};
-use crate::repr::{CdfEncoding, Endian};
+use crate::repr::Endian;
 
 /// Trait for decoding a CDF result from a reader.
 pub trait Decodable {
@@ -14,18 +14,20 @@ pub trait Decodable {
 
 /// Struct containing the reader and decoding configurations.
 pub struct Decoder<R: io::Read> {
-    /// A reader is some object that implements the [io::Read] trait.
+    /// A reader is some object that implements the [`io::Read`] trait.
     pub reader: R,
     /// The endianness corresponding to this decoder.
-    pub encoding: Endian,
+    pub endianness: Endian,
 }
 
 impl<R: io::Read> Decoder<R> {
     /// Create a new decoder based on some reader than implements [io::Read] and a CDF encoding.
-    pub fn new(reader: R, cdf_encoding: CdfEncoding) -> Result<Self, CdfError> {
-        Ok(Decoder {
-            reader,
-            encoding: cdf_encoding.get_endian()?,
-        })
+    pub fn new(reader: R, endianness: Endian) -> Result<Self, CdfError> {
+        Ok(Decoder { reader, endianness })
+    }
+
+    /// Change or set the endianness of the decoder.
+    pub fn set_endianness(&mut self, endianness: Endian) {
+        self.endianness = endianness;
     }
 }

@@ -15,4 +15,8 @@ pub mod repr;
 /// architectures.
 pub mod types;
 
-//pub mod record;
+/// CDF records descriptions.
+pub mod record;
+
+/// The structure of the CDF file.
+pub mod cdf;

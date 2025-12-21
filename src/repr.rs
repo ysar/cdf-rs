@@ -1,4 +1,7 @@
-use crate::error::CdfError;
+use crate::{
+    error::{CdfError, DecodeError},
+    types::CdfInt4,
+};
 
 /// Data Encodings used in CDF (from CDF specification Table 5.11).
 #[derive(Debug)]
@@ -71,6 +74,35 @@ impl CdfEncoding {
             _ => Err(CdfError::Other(
                 "Encoding {self:?} not implemented.".to_string(),
             )),
+        }
+    }
+}
+
+impl TryFrom<CdfInt4> for CdfEncoding {
+    type Error = DecodeError;
+    fn try_from(value: CdfInt4) -> Result<Self, DecodeError> {
+        let _value: i32 = value.into();
+        match _value {
+            1 => Ok(CdfEncoding::Network),
+            2 => Ok(CdfEncoding::Sun),
+            3 => Ok(CdfEncoding::Vax),
+            4 => Ok(CdfEncoding::DecStation),
+            5 => Ok(CdfEncoding::Sgi),
+            6 => Ok(CdfEncoding::IbmPc),
+            7 => Ok(CdfEncoding::IbmRs),
+            9 => Ok(CdfEncoding::MacPpc),
+            11 => Ok(CdfEncoding::Hp),
+            12 => Ok(CdfEncoding::Next),
+            13 => Ok(CdfEncoding::AlphaOsf1),
+            14 => Ok(CdfEncoding::AlphaVmsD),
+            15 => Ok(CdfEncoding::AlphaVmsG),
+            16 => Ok(CdfEncoding::AlphaVmsI),
+            17 => Ok(CdfEncoding::ArmLittle),
+            18 => Ok(CdfEncoding::ArmBig),
+            19 => Ok(CdfEncoding::Ia64VmsI),
+            20 => Ok(CdfEncoding::Ia64VmsD),
+            21 => Ok(CdfEncoding::Ia64VmsG),
+            _ => Err(DecodeError::Other("Invalid encoding integer.".to_string())),
         }
     }
 }

@@ -94,7 +94,7 @@ macro_rules! impl_decodable {
                         .read_exact(&mut buffer[..])
                         .map_err(|err| DecodeError::Other(format!("{err}")))?;
 
-                    match decoder.encoding {
+                    match decoder.endianness {
                         Endian::Big => Ok($t::from_be_bytes(buffer)),
                         Endian::Little => Ok($t::from_le_bytes(buffer)),
                     }
@@ -114,7 +114,7 @@ mod tests {
     use super::*;
     use crate::decode::Decoder;
     use crate::error::CdfError;
-    use crate::repr::CdfEncoding;
+    use crate::repr::Endian;
     use paste::paste;
 
     macro_rules! test_type {
@@ -131,7 +131,7 @@ mod tests {
                 fn [< test_decode_ $t1:lower _ $t2 >]() -> Result<(), CdfError> {
                     let x: $t2 = $val;
                     let y = x.to_be_bytes();
-                    let mut decoder = Decoder::new(y.as_slice(), CdfEncoding::Network)?;
+                    let mut decoder = Decoder::new(y.as_slice(), Endian::Big)?;
                     assert_eq!($t1(x), $t1::decode(&mut decoder)?);
 
                     Ok(())
