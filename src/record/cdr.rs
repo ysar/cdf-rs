@@ -39,9 +39,10 @@ impl Decodable for CdfDescriptorRecord {
 
         let record_type = CdfInt4::decode(decoder)?;
         if record_type.0 != 1 {
-            return Err(DecodeError::Other(
-                "record_type for CDR is not 1 as expected from specification.".to_string(),
-            ));
+            return Err(DecodeError::Other(format!(
+                "Invalid record_type for CDR. Expected 1, Received {}",
+                record_type.0
+            )));
         }
 
         let gdr_offset = if decoder.version.major >= 3 {

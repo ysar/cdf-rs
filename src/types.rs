@@ -43,9 +43,9 @@ macro_rules! impl_cdf_type {
             }
         }
 
-        impl Into<$t> for $name {
-            fn into(self) -> $t {
-                self.0
+        impl From<$name> for $t {
+            fn from(value: $name) -> $t {
+                value.0
             }
         }
 
@@ -74,13 +74,13 @@ impl_cdf_type!(CdfUchar, u8);
 // pub type CdfFloat = CdfReal4;
 // pub type CdfDouble = CdfReal8;
 
-pub struct CdfEpoch16(CdfReal8, CdfReal8);
+// pub struct CdfEpoch16(CdfReal8, CdfReal8);
 
-impl CdfEpoch16 {
-    pub const fn size() -> usize {
-        16
-    }
-}
+// impl CdfEpoch16 {
+//     pub const fn size() -> usize {
+//         16
+//     }
+// }
 
 // Each CdfType is encoded/decoded in little or big-endian format depending on the type of
 // CdfEncoding that is used.
