@@ -48,6 +48,12 @@ macro_rules! impl_cdf_type {
                 self.0
             }
         }
+
+        impl AsRef<$t> for $name {
+            fn as_ref(&self) -> &$t {
+                &self.0
+            }
+        }
     };
 }
 

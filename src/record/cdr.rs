@@ -39,10 +39,10 @@ impl Decodable for CdfDescriptorRecord {
 
         let _flags: i32 = CdfInt4::decode(decoder)?.into();
         let flags = CdrFlags {
-            row_major: _flags & 0x00000001 == 1,
-            single_file: _flags & 0x00000010 == 2,
-            has_checksum: _flags & 0x00000100 == 4,
-            md5_checksum: _flags & 0x00001000 == 8,
+            row_major: _flags & 1i32 == 1,
+            single_file: _flags & 2i32 == 2,
+            has_checksum: _flags & 4i32 == 4,
+            md5_checksum: _flags & 8i32 == 8,
         };
 
         let rfu_a = CdfInt4::decode(decoder)?;
@@ -80,7 +80,7 @@ impl Decodable for CdfDescriptorRecord {
 }
 
 /// Flags pertaining to this CDF file.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CdrFlags {
     pub row_major: bool,
     pub single_file: bool,
@@ -93,6 +93,7 @@ mod tests {
 
     use crate::cdf;
     use crate::error::CdfError;
+    use crate::record::InternalRecord;
     use crate::repr::Endian;
     use std::fs::File;
     use std::path::PathBuf;
@@ -113,6 +114,29 @@ mod tests {
         let f = File::open(path_test_file)?;
         let mut decoder = Decoder::new(f, Endian::Big)?;
         let cdf = cdf::Cdf::decode(&mut decoder)?;
+        let record = &cdf.records[0];
+        let InternalRecord::CDR(cdr) = record;
+
+        assert_eq!(cdr.record_size.as_ref(), &312);
+        assert_eq!(cdr.record_type.as_ref(), &1);
+        assert_eq!(cdr.gdr_offset.as_ref(), &320);
+        assert_eq!(cdr.cdf_version, Version::new(3, 8, 1));
+        assert_eq!(cdr.encoding, CdfEncoding::IbmPc);
+        assert_eq!(
+            cdr.flags,
+            CdrFlags {
+                row_major: true,
+                single_file: true,
+                has_checksum: true,
+                md5_checksum: true
+            }
+        );
+        assert_eq!(cdr.rfu_a.as_ref(), &0);
+        assert_eq!(cdr.rfu_b.as_ref(), &0);
+        assert_eq!(cdr.identifier.as_ref(), &-1);
+        assert_eq!(cdr.rfu_e.as_ref(), &-1);
+        assert!(cdr.copyright.len() == 256);
+
         println!("{:?}", cdf);
         Ok(())
     }

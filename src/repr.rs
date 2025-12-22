@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// Data Encodings used in CDF (from CDF specification Table 5.11).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CdfEncoding {
     /// eXternal Data Representation
     Network = 1,
