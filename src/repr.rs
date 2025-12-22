@@ -6,6 +6,8 @@ use crate::{
 /// Data Encodings used in CDF (from CDF specification Table 5.11).
 #[derive(Debug, PartialEq)]
 pub enum CdfEncoding {
+    /// Some files have set this to zero, against spec.
+    Unspecified = 0,
     /// eXternal Data Representation
     Network = 1,
     /// Sun Representation
@@ -56,7 +58,8 @@ impl CdfEncoding {
     /// Returns the endianness associated with this CDF data encoding.
     pub fn get_endian(&self) -> Result<Endian, CdfError> {
         match &self {
-            CdfEncoding::Network
+            CdfEncoding::Unspecified
+            | CdfEncoding::Network
             | CdfEncoding::Sun
             | CdfEncoding::Next
             | CdfEncoding::MacPpc
@@ -83,6 +86,7 @@ impl TryFrom<CdfInt4> for CdfEncoding {
     fn try_from(value: CdfInt4) -> Result<Self, DecodeError> {
         let _value: i32 = value.into();
         match _value {
+            0 => Ok(CdfEncoding::Unspecified),
             1 => Ok(CdfEncoding::Network),
             2 => Ok(CdfEncoding::Sun),
             3 => Ok(CdfEncoding::Vax),
@@ -102,7 +106,10 @@ impl TryFrom<CdfInt4> for CdfEncoding {
             19 => Ok(CdfEncoding::Ia64VmsI),
             20 => Ok(CdfEncoding::Ia64VmsD),
             21 => Ok(CdfEncoding::Ia64VmsG),
-            _ => Err(DecodeError::Other("Invalid encoding integer.".to_string())),
+            v => Err(DecodeError::Other(format!(
+                "Invalid encoding integer - {}.",
+                v
+            ))),
         }
     }
 }

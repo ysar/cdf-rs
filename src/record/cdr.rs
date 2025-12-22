@@ -30,9 +30,27 @@ impl Decodable for CdfDescriptorRecord {
 
     /// Decode the CDF Descriptor Record from the CDF file.
     fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
-        let record_size = CdfInt8::decode(decoder)?;
+        let record_size = if decoder.version.major >= 3 {
+            CdfInt8::decode(decoder)?
+        } else {
+            let _s: i32 = CdfInt4::decode(decoder)?.into();
+            CdfInt8(_s as i64)
+        };
+
         let record_type = CdfInt4::decode(decoder)?;
-        let gdr_offset = CdfInt8::decode(decoder)?;
+        if record_type.0 != 1 {
+            return Err(DecodeError::Other(
+                "record_type for CDR is not 1 as expected from specification.".to_string(),
+            ));
+        }
+
+        let gdr_offset = if decoder.version.major >= 3 {
+            CdfInt8::decode(decoder)?
+        } else {
+            let _s: i32 = CdfInt4::decode(decoder)?.into();
+            CdfInt8(_s as i64)
+        };
+
         let _version: i32 = CdfInt4::decode(decoder)?.into();
         let _release: i32 = CdfInt4::decode(decoder)?.into();
         let encoding: CdfEncoding = CdfInt4::decode(decoder)?.try_into()?;
@@ -50,18 +68,20 @@ impl Decodable for CdfDescriptorRecord {
         let _increment: i32 = CdfInt4::decode(decoder)?.into();
 
         let cdf_version = Version::new(_version as u64, _release as u64, _increment as u64);
+        if cdf_version != decoder.version {
+            decoder.set_version(cdf_version.clone());
+        }
+
         let identifier = CdfInt4::decode(decoder)?;
         let rfu_e = CdfInt4::decode(decoder)?;
         let mut copyright = if cdf_version < Version::new(2, 5, 0) {
-            // read 1945 characters / bytes in ASCII
             vec![0u8; 1945]
         } else {
             vec![0u8; 256]
-            // read 256 characters
         };
         _ = decoder.reader.read_exact(&mut copyright);
         let copyright: String = String::from_utf8(copyright)
-            .map_err(|_| DecodeError::Other("Error decoding copyright notice.".to_string()))?;
+            .map_err(|e| DecodeError::Other(format!("Error decoding copyright notice. - {}", e)))?;
 
         Ok(CdfDescriptorRecord {
             record_size,
@@ -96,41 +116,71 @@ mod tests {
     use crate::record::InternalRecord;
     use crate::repr::Endian;
     use std::fs::File;
+    use std::io::BufReader;
     use std::path::PathBuf;
 
     use super::*;
 
     #[test]
-    fn cdf_descriptor_record() -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [
-            env!("CARGO_MANIFEST_DIR"),
-            "tests",
-            "data",
-            "test_alltypes.cdf",
-        ]
-        .iter()
-        .collect();
+    fn test_cdr_examples() -> Result<(), CdfError> {
+        let file1 = "test_alltypes.cdf";
+        let file2 = "ulysses.cdf";
 
-        let f = File::open(path_test_file)?;
-        let mut decoder = Decoder::new(f, Endian::Big)?;
-        let cdf = cdf::Cdf::decode(&mut decoder)?;
-        let record = &cdf.records[0];
-        let InternalRecord::CDR(cdr) = record;
-
-        assert_eq!(cdr.record_size.as_ref(), &312);
-        assert_eq!(cdr.record_type.as_ref(), &1);
-        assert_eq!(cdr.gdr_offset.as_ref(), &320);
-        assert_eq!(cdr.cdf_version, Version::new(3, 8, 1));
-        assert_eq!(cdr.encoding, CdfEncoding::IbmPc);
-        assert_eq!(
-            cdr.flags,
+        _ = _cdf_descriptor_record_example(
+            file1,
+            312,
+            320,
+            Version::new(3, 8, 1),
+            CdfEncoding::IbmPc,
             CdrFlags {
                 row_major: true,
                 single_file: true,
                 has_checksum: true,
-                md5_checksum: true
-            }
-        );
+                md5_checksum: true,
+            },
+        )?;
+
+        _ = _cdf_descriptor_record_example(
+            file2,
+            304,
+            312,
+            Version::new(2, 5, 22),
+            CdfEncoding::Network,
+            CdrFlags {
+                row_major: true,
+                single_file: true,
+                has_checksum: false,
+                md5_checksum: false,
+            },
+        )?;
+        Ok(())
+    }
+
+    fn _cdf_descriptor_record_example(
+        filename: &str,
+        record_size: i64,
+        gdr_offset: i64,
+        version: Version,
+        encoding: CdfEncoding,
+        flags: CdrFlags,
+    ) -> Result<(), CdfError> {
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+            .iter()
+            .collect();
+
+        let f = File::open(path_test_file)?;
+        let reader = BufReader::new(f);
+        let mut decoder = Decoder::new(reader, Endian::Big, None)?;
+        let cdf = cdf::Cdf::decode(&mut decoder)?;
+        let record = &cdf.records[0];
+        let InternalRecord::CDR(cdr) = record;
+
+        assert_eq!(cdr.record_size.as_ref(), &record_size);
+        assert_eq!(cdr.record_type.as_ref(), &1);
+        assert_eq!(cdr.gdr_offset.as_ref(), &gdr_offset);
+        assert_eq!(cdr.cdf_version, version);
+        assert_eq!(cdr.encoding, encoding);
+        assert_eq!(cdr.flags, flags,);
         assert_eq!(cdr.rfu_a.as_ref(), &0);
         assert_eq!(cdr.rfu_b.as_ref(), &0);
         assert_eq!(cdr.identifier.as_ref(), &-1);

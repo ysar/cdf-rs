@@ -10,7 +10,7 @@ use std::mem;
 macro_rules! impl_cdf_type {
     ($name:ident, $t:ty) => {
         #[derive(Debug, PartialEq)]
-        pub struct $name($t);
+        pub struct $name(pub $t);
 
         impl $name {
             pub const fn size() -> usize {
@@ -137,7 +137,7 @@ mod tests {
                 fn [< test_decode_ $t1:lower _ $t2 >]() -> Result<(), CdfError> {
                     let x: $t2 = $val;
                     let y = x.to_be_bytes();
-                    let mut decoder = Decoder::new(y.as_slice(), Endian::Big)?;
+                    let mut decoder = Decoder::new(y.as_slice(), Endian::Big, None)?;
                     assert_eq!($t1(x), $t1::decode(&mut decoder)?);
 
                     Ok(())
