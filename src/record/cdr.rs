@@ -34,14 +34,14 @@ impl Decodable for CdfDescriptorRecord {
             CdfInt8::decode(decoder)?
         } else {
             let _s: i32 = CdfInt4::decode(decoder)?.into();
-            CdfInt8(_s as i64)
+            CdfInt8::from(_s as i64)
         };
 
         let record_type = CdfInt4::decode(decoder)?;
-        if record_type.0 != 1 {
+        if record_type.as_ref() != &1 {
             return Err(DecodeError::Other(format!(
                 "Invalid record_type for CDR. Expected 1, Received {}",
-                record_type.0
+                *record_type.as_ref()
             )));
         }
 
@@ -49,7 +49,7 @@ impl Decodable for CdfDescriptorRecord {
             CdfInt8::decode(decoder)?
         } else {
             let _s: i32 = CdfInt4::decode(decoder)?.into();
-            CdfInt8(_s as i64)
+            CdfInt8::from(_s as i64)
         };
 
         let _version: i32 = CdfInt4::decode(decoder)?.into();
