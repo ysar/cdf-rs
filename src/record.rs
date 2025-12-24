@@ -20,4 +20,6 @@ pub mod zvdr;
 pub enum InternalRecord {
     /// CDF Descriptor Record
     CDR(cdr::CdfDescriptorRecord) = 1,
+    /// Global Descriptor Record
+    GDR(gdr::GlobalDescriptorRecord) = 2,
 }

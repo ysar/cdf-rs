@@ -42,12 +42,16 @@ impl Decodable for Cdf {
             records: vec![],
         };
 
-        println!("{:?}", cdf);
+        // println!("{:?}", cdf);
 
         // Parse the CDF Descriptor Record that is present after the magic numbers.
         let cdr = record::cdr::CdfDescriptorRecord::decode(decoder)?;
-
         cdf.records.push(InternalRecord::CDR(cdr));
+
+        // Parse the Global Descriptor Record.
+        let gdr = record::gdr::GlobalDescriptorRecord::decode(decoder)?;
+        cdf.records.push(InternalRecord::GDR(gdr));
+
         Ok(cdf)
     }
 }

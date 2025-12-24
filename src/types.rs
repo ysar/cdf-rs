@@ -6,51 +6,60 @@ use crate::error::DecodeError;
 use crate::repr::Endian;
 use std::io;
 use std::mem;
+use std::ops::Deref;
 
 macro_rules! impl_cdf_type {
-    ($name:ident, $t:ty) => {
-        #[derive(Debug, PartialEq)]
-        pub struct $name(pub $t);
+    ($cdf_type:ident, $rust_type:ty) => {
+        #[derive(Debug, PartialEq, Clone)]
+        pub struct $cdf_type($rust_type);
 
-        impl $name {
+        impl $cdf_type {
             pub const fn size() -> usize {
-                mem::size_of::<$t>()
+                mem::size_of::<$rust_type>()
             }
 
             pub fn from_ne_bytes(bytes: [u8; Self::size()]) -> Self {
-                Self(<$t>::from_ne_bytes(bytes))
+                Self(<$rust_type>::from_ne_bytes(bytes))
             }
             pub fn from_be_bytes(bytes: [u8; Self::size()]) -> Self {
-                Self(<$t>::from_be_bytes(bytes))
+                Self(<$rust_type>::from_be_bytes(bytes))
             }
             pub fn from_le_bytes(bytes: [u8; Self::size()]) -> Self {
-                Self(<$t>::from_le_bytes(bytes))
+                Self(<$rust_type>::from_le_bytes(bytes))
             }
             pub fn to_ne_bytes(self) -> [u8; Self::size()] {
-                <$t>::to_ne_bytes(self.0)
+                <$rust_type>::to_ne_bytes(self.0)
             }
             pub fn to_be_bytes(self) -> [u8; Self::size()] {
-                <$t>::to_be_bytes(self.0)
+                <$rust_type>::to_be_bytes(self.0)
             }
             pub fn to_le_bytes(self) -> [u8; Self::size()] {
-                <$t>::to_le_bytes(self.0)
+                <$rust_type>::to_le_bytes(self.0)
             }
         }
 
-        impl From<$t> for $name {
-            fn from(value: $t) -> Self {
-                $name(value)
+        impl From<$rust_type> for $cdf_type {
+            fn from(value: $rust_type) -> Self {
+                $cdf_type(value)
             }
         }
 
-        impl From<$name> for $t {
-            fn from(value: $name) -> $t {
+        impl From<$cdf_type> for $rust_type {
+            fn from(value: $cdf_type) -> $rust_type {
                 value.0
             }
         }
 
-        impl AsRef<$t> for $name {
-            fn as_ref(&self) -> &$t {
+        impl AsRef<$rust_type> for $cdf_type {
+            fn as_ref(&self) -> &$rust_type {
+                &self.0
+            }
+        }
+
+        impl Deref for $cdf_type {
+            type Target = $rust_type;
+
+            fn deref(&self) -> &Self::Target {
                 &self.0
             }
         }

@@ -4,6 +4,7 @@ use semver::Version;
 
 use crate::error::{CdfError, DecodeError};
 use crate::repr::Endian;
+use crate::types::{CdfInt4, CdfInt8};
 
 /// Trait for decoding a CDF result from a reader.
 pub trait Decodable {
@@ -43,5 +44,19 @@ impl<R: io::Read> Decoder<R> {
     /// Change or set the CDF version of the decoder.
     pub fn set_version(&mut self, version: Version) {
         self.version = version;
+    }
+}
+
+/// CDF versions prior to 3.0 use 4-byte signed integer for a variety of records.  This was changed
+/// to 8-bytes after 3.0.  So, we need to do version-aware decoding.  Safely converts CdfInt4 to
+/// CdfInt8 after decoding.
+pub fn _decode_version3_int4_int8<R: io::Read>(
+    decoder: &mut Decoder<R>,
+) -> Result<CdfInt8, DecodeError> {
+    if decoder.version.major >= 3 {
+        CdfInt8::decode(decoder)
+    } else {
+        let _s: i32 = CdfInt4::decode(decoder)?.into();
+        Ok(CdfInt8::from(_s as i64))
     }
 }

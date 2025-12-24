@@ -1,7 +1,7 @@
 use semver::Version;
 
 use crate::{
-    decode::{Decodable, Decoder},
+    decode::{Decodable, Decoder, _decode_version3_int4_int8},
     error::DecodeError,
     repr::CdfEncoding,
     types::{CdfInt4, CdfInt8},
@@ -30,28 +30,16 @@ impl Decodable for CdfDescriptorRecord {
 
     /// Decode the CDF Descriptor Record from the CDF file.
     fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
-        let record_size = if decoder.version.major >= 3 {
-            CdfInt8::decode(decoder)?
-        } else {
-            let _s: i32 = CdfInt4::decode(decoder)?.into();
-            CdfInt8::from(_s as i64)
-        };
-
+        let record_size = _decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode(decoder)?;
-        if record_type.as_ref() != &1 {
+        if *record_type != 1 {
             return Err(DecodeError::Other(format!(
                 "Invalid record_type for CDR. Expected 1, Received {}",
-                *record_type.as_ref()
+                *record_type
             )));
         }
 
-        let gdr_offset = if decoder.version.major >= 3 {
-            CdfInt8::decode(decoder)?
-        } else {
-            let _s: i32 = CdfInt4::decode(decoder)?.into();
-            CdfInt8::from(_s as i64)
-        };
-
+        let gdr_offset = _decode_version3_int4_int8(decoder)?;
         let _version: i32 = CdfInt4::decode(decoder)?.into();
         let _release: i32 = CdfInt4::decode(decoder)?.into();
         let encoding: CdfEncoding = CdfInt4::decode(decoder)?.try_into()?;
@@ -82,7 +70,7 @@ impl Decodable for CdfDescriptorRecord {
         };
         _ = decoder.reader.read_exact(&mut copyright);
         let copyright: String = String::from_utf8(copyright)
-            .map_err(|e| DecodeError::Other(format!("Error decoding copyright notice. - {}", e)))?;
+            .map_err(|e| DecodeError::Other(format!("Error decoding copyright notice. - {e}")))?;
 
         Ok(CdfDescriptorRecord {
             record_size,
@@ -174,20 +162,21 @@ mod tests {
         let mut decoder = Decoder::new(reader, Endian::Big, None)?;
         let cdf = cdf::Cdf::decode(&mut decoder)?;
         let record = &cdf.records[0];
-        let InternalRecord::CDR(cdr) = record;
-
-        assert_eq!(cdr.record_size.as_ref(), &record_size);
-        assert_eq!(cdr.record_type.as_ref(), &1);
-        assert_eq!(cdr.gdr_offset.as_ref(), &gdr_offset);
-        assert_eq!(cdr.cdf_version, version);
-        assert_eq!(cdr.encoding, encoding);
-        assert_eq!(cdr.flags, flags,);
-        assert_eq!(cdr.rfu_a.as_ref(), &0);
-        assert_eq!(cdr.rfu_b.as_ref(), &0);
-        assert_eq!(cdr.identifier.as_ref(), &-1);
-        assert_eq!(cdr.rfu_e.as_ref(), &-1);
-        assert!(cdr.copyright.len() == 256);
-
+        if let InternalRecord::CDR(cdr) = record {
+            assert_eq!(*cdr.record_size, record_size);
+            assert_eq!(*cdr.record_type, 1);
+            assert_eq!(*cdr.gdr_offset, gdr_offset);
+            assert_eq!(cdr.cdf_version, version);
+            assert_eq!(cdr.encoding, encoding);
+            assert_eq!(cdr.flags, flags,);
+            assert_eq!(*cdr.rfu_a, 0);
+            assert_eq!(*cdr.rfu_b, 0);
+            assert_eq!(*cdr.identifier, -1);
+            assert_eq!(*cdr.rfu_e, -1);
+            assert!(cdr.copyright.len() == 256);
+        } else {
+            panic!("CDR not found.");
+        }
         println!("{:?}", cdf);
         Ok(())
     }
