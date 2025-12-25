@@ -29,7 +29,10 @@ impl Decodable for CdfDescriptorRecord {
     type Value = Self;
 
     /// Decode the CDF Descriptor Record from the CDF file.
-    fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
+    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
         let record_size = _decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode(decoder)?;
         if *record_type != 1 {
@@ -102,7 +105,6 @@ mod tests {
 
     use crate::cdf;
     use crate::error::CdfError;
-    use crate::record::InternalRecord;
     use crate::repr::Endian;
     use std::fs::File;
     use std::io::BufReader;
@@ -161,22 +163,18 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader, Endian::Big, None)?;
         let cdf = cdf::Cdf::decode(&mut decoder)?;
-        let record = &cdf.records[0];
-        if let InternalRecord::CDR(cdr) = record {
-            assert_eq!(*cdr.record_size, record_size);
-            assert_eq!(*cdr.record_type, 1);
-            assert_eq!(*cdr.gdr_offset, gdr_offset);
-            assert_eq!(cdr.cdf_version, version);
-            assert_eq!(cdr.encoding, encoding);
-            assert_eq!(cdr.flags, flags,);
-            assert_eq!(*cdr.rfu_a, 0);
-            assert_eq!(*cdr.rfu_b, 0);
-            assert_eq!(*cdr.identifier, -1);
-            assert_eq!(*cdr.rfu_e, -1);
-            assert!(cdr.copyright.len() == 256);
-        } else {
-            panic!("CDR not found.");
-        }
+        let cdr = &cdf.cdr;
+        assert_eq!(*cdr.record_size, record_size);
+        assert_eq!(*cdr.record_type, 1);
+        assert_eq!(*cdr.gdr_offset, gdr_offset);
+        assert_eq!(cdr.cdf_version, version);
+        assert_eq!(cdr.encoding, encoding);
+        assert_eq!(cdr.flags, flags,);
+        assert_eq!(*cdr.rfu_a, 0);
+        assert_eq!(*cdr.rfu_b, 0);
+        assert_eq!(*cdr.identifier, -1);
+        assert_eq!(*cdr.rfu_e, -1);
+        assert!(cdr.copyright.len() == 256);
         println!("{:?}", cdf);
         Ok(())
     }

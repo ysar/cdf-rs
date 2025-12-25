@@ -32,7 +32,10 @@ pub struct GlobalDescriptorRecord {
 impl Decodable for GlobalDescriptorRecord {
     type Value = Self;
 
-    fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError> {
+    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
         let record_size = _decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode(decoder)?;
         if *record_type != 2 {
@@ -139,7 +142,6 @@ mod tests {
 
     use crate::cdf;
     use crate::error::CdfError;
-    use crate::record::InternalRecord;
     use crate::repr::Endian;
     use std::fs::File;
     use std::io::BufReader;
@@ -202,32 +204,30 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader, Endian::Big, None)?;
         let cdf = cdf::Cdf::decode(&mut decoder)?;
-        let record = &cdf.records[1];
-        if let InternalRecord::GDR(gdr) = record {
-            assert_eq!(gdr.record_size, exp.record_size);
-            assert_eq!(gdr.record_size, exp.record_size);
-            assert_eq!(gdr.record_type, exp.record_type);
-            assert_eq!(gdr.rvdr_head, exp.rvdr_head);
-            assert_eq!(gdr.zvdr_head, exp.zvdr_head);
-            assert_eq!(gdr.adr_head, exp.adr_head);
-            assert_eq!(gdr.eof, exp.eof);
-            assert_eq!(gdr.num_rvars, exp.num_rvars);
-            assert_eq!(gdr.num_attributes, exp.num_attributes);
-            assert_eq!(gdr.max_rvar, exp.max_rvar);
-            assert_eq!(gdr.dim_rvar, exp.dim_rvar);
-            assert_eq!(gdr.num_zvars, exp.num_zvars);
-            assert_eq!(gdr.uir_head, exp.uir_head);
-            assert_eq!(gdr.rfu_c, exp.rfu_c);
-            assert_eq!(
-                gdr.date_last_leapsecond_update,
-                exp.date_last_leapsecond_update
-            );
-            assert_eq!(gdr.rfu_e, exp.rfu_e);
-            assert_eq!(gdr.sizes_rvar.len(), exp.sizes_rvar.len());
-            for i in 0..gdr.sizes_rvar.len() {
-                assert_eq!(gdr.sizes_rvar[i], exp.sizes_rvar[i]);
-            }
-        };
+        let gdr = &cdf.gdr;
+        assert_eq!(gdr.record_size, exp.record_size);
+        assert_eq!(gdr.record_size, exp.record_size);
+        assert_eq!(gdr.record_type, exp.record_type);
+        assert_eq!(gdr.rvdr_head, exp.rvdr_head);
+        assert_eq!(gdr.zvdr_head, exp.zvdr_head);
+        assert_eq!(gdr.adr_head, exp.adr_head);
+        assert_eq!(gdr.eof, exp.eof);
+        assert_eq!(gdr.num_rvars, exp.num_rvars);
+        assert_eq!(gdr.num_attributes, exp.num_attributes);
+        assert_eq!(gdr.max_rvar, exp.max_rvar);
+        assert_eq!(gdr.dim_rvar, exp.dim_rvar);
+        assert_eq!(gdr.num_zvars, exp.num_zvars);
+        assert_eq!(gdr.uir_head, exp.uir_head);
+        assert_eq!(gdr.rfu_c, exp.rfu_c);
+        assert_eq!(
+            gdr.date_last_leapsecond_update,
+            exp.date_last_leapsecond_update
+        );
+        assert_eq!(gdr.rfu_e, exp.rfu_e);
+        assert_eq!(gdr.sizes_rvar.len(), exp.sizes_rvar.len());
+        for i in 0..gdr.sizes_rvar.len() {
+            assert_eq!(gdr.sizes_rvar[i], exp.sizes_rvar[i]);
+        }
         Ok(())
     }
 }

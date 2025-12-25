@@ -1,24 +1,29 @@
-use std::io;
+use std::io::{self, SeekFrom};
 
 use semver::Version;
 
 use crate::decode::{Decodable, Decoder};
 use crate::error::DecodeError;
-use crate::record::{self, InternalRecord};
+use crate::record::cdr::CdfDescriptorRecord;
+use crate::record::gdr::GlobalDescriptorRecord;
 use crate::types::CdfUint4;
 
 /// General struct to hold the contents of the CDF file.
 #[derive(Debug)]
 pub struct Cdf {
     pub is_compressed: bool,
-    pub records: Vec<InternalRecord>,
+    pub cdr: CdfDescriptorRecord,
+    pub gdr: GlobalDescriptorRecord,
 }
 
 impl Decodable for Cdf {
     type Value = Self;
 
     /// Decode a value from the input that implements `io::Read`.
-    fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
+    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
         // Decode the magic numbers.  The first number is not that important as it seems.
         let m1 = CdfUint4::decode(decoder)?;
         let m2 = CdfUint4::decode(decoder)?;
@@ -37,22 +42,22 @@ impl Decodable for Cdf {
             v => return Err(DecodeError::InvalidMagicNumber(v)),
         };
 
-        let mut cdf = Cdf {
-            is_compressed,
-            records: vec![],
-        };
-
-        // println!("{:?}", cdf);
-
         // Parse the CDF Descriptor Record that is present after the magic numbers.
-        let cdr = record::cdr::CdfDescriptorRecord::decode(decoder)?;
-        cdf.records.push(InternalRecord::CDR(cdr));
+        let cdr = CdfDescriptorRecord::decode(decoder)?;
 
-        // Parse the Global Descriptor Record.
-        let gdr = record::gdr::GlobalDescriptorRecord::decode(decoder)?;
-        cdf.records.push(InternalRecord::GDR(gdr));
+        // Parse the Global Descriptor Record. The GDR can be present at any file offset, so we need
+        // to `seek` to the `gdr_offset` value read in the CDR.
+        _ = decoder
+            .reader
+            .seek(SeekFrom::Start(*cdr.gdr_offset as u64))?;
 
-        Ok(cdf)
+        let gdr = GlobalDescriptorRecord::decode(decoder)?;
+
+        Ok(Cdf {
+            is_compressed,
+            cdr,
+            gdr,
+        })
     }
 }
 

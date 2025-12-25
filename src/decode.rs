@@ -12,7 +12,9 @@ pub trait Decodable {
     type Value;
 
     /// Decode a value from the input that implements `io::Read`.
-    fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>;
+    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    where
+        R: io::Read + io::Seek;
 }
 
 /// Struct containing the reader and decoding configurations.
@@ -26,7 +28,10 @@ pub struct Decoder<R: io::Read> {
     pub version: Version,
 }
 
-impl<R: io::Read> Decoder<R> {
+impl<R> Decoder<R>
+where
+    R: io::Read + io::Seek,
+{
     /// Create a new decoder based on some reader than implements [io::Read] and a CDF encoding.
     pub fn new(reader: R, endianness: Endian, version: Option<Version>) -> Result<Self, CdfError> {
         Ok(Decoder {
@@ -50,9 +55,10 @@ impl<R: io::Read> Decoder<R> {
 /// CDF versions prior to 3.0 use 4-byte signed integer for a variety of records.  This was changed
 /// to 8-bytes after 3.0.  So, we need to do version-aware decoding.  Safely converts CdfInt4 to
 /// CdfInt8 after decoding.
-pub fn _decode_version3_int4_int8<R: io::Read>(
-    decoder: &mut Decoder<R>,
-) -> Result<CdfInt8, DecodeError> {
+pub fn _decode_version3_int4_int8<R>(decoder: &mut Decoder<R>) -> Result<CdfInt8, DecodeError>
+where
+    R: io::Read + io::Seek,
+{
     if decoder.version.major >= 3 {
         CdfInt8::decode(decoder)
     } else {

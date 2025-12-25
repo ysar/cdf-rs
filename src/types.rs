@@ -101,7 +101,10 @@ macro_rules! impl_decodable {
 
                 type Value = $t;
 
-                fn decode<R: io::Read>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError> {
+                fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+                where
+                    R: io::Read + io::Seek
+                {
                     let mut buffer = [0u8; <$t>::size()];
 
                     decoder
@@ -146,7 +149,7 @@ mod tests {
                 fn [< test_decode_ $t1:lower _ $t2 >]() -> Result<(), CdfError> {
                     let x: $t2 = $val;
                     let y = x.to_be_bytes();
-                    let mut decoder = Decoder::new(y.as_slice(), Endian::Big, None)?;
+                    let mut decoder = Decoder::new(io::Cursor::new(y.as_slice()), Endian::Big, None)?;
                     assert_eq!($t1(x), $t1::decode(&mut decoder)?);
 
                     Ok(())
