@@ -35,7 +35,7 @@ impl Decodable for AttributeDescriptorRecord {
         let record_type = CdfInt4::decode(decoder)?;
         if *record_type != 4 {
             return Err(DecodeError::Other(format!(
-                "Invalid record_type for ADR. Expected 4, Received {}",
+                "Invalid record_type for ADR - expected 4, received {}",
                 *record_type
             )));
         };

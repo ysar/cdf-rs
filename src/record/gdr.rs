@@ -40,7 +40,7 @@ impl Decodable for GlobalDescriptorRecord {
         let record_type = CdfInt4::decode(decoder)?;
         if *record_type != 2 {
             return Err(DecodeError::Other(format!(
-                "Invalid record_type for GDR. Expected 2, Received {}",
+                "Invalid record_type for GDR - expected 2, received {}",
                 *record_type
             )));
         };

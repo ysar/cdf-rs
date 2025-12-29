@@ -37,7 +37,7 @@ impl Decodable for CdfDescriptorRecord {
         let record_type = CdfInt4::decode(decoder)?;
         if *record_type != 1 {
             return Err(DecodeError::Other(format!(
-                "Invalid record_type for CDR. Expected 1, Received {}",
+                "Invalid record_type for CDR - expected 1, received {}",
                 *record_type
             )));
         }
@@ -56,7 +56,20 @@ impl Decodable for CdfDescriptorRecord {
         };
 
         let rfu_a = CdfInt4::decode(decoder)?;
+        if *rfu_a != 0 {
+            return Err(DecodeError::Other(format!(
+                "Invalid rfu_a read from file in CDR - expected 0, received {}",
+                *rfu_a
+            )));
+        }
         let rfu_b = CdfInt4::decode(decoder)?;
+        if *rfu_b != 0 {
+            return Err(DecodeError::Other(format!(
+                "Invalid rfu_b read from file in CDR - expected 0, received {}",
+                *rfu_b
+            )));
+        }
+
         let _increment: i32 = CdfInt4::decode(decoder)?.into();
 
         let cdf_version = Version::new(_version as u64, _release as u64, _increment as u64);
