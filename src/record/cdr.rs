@@ -175,7 +175,7 @@ mod tests {
         assert_eq!(*cdr.identifier, -1);
         assert_eq!(*cdr.rfu_e, -1);
         assert!(cdr.copyright.len() == 256);
-        println!("{:?}", cdf);
+        // println!("{:?}", cdf);
         Ok(())
     }
 }

@@ -18,7 +18,10 @@ pub trait Decodable {
 }
 
 /// Struct containing the reader and decoding configurations.
-pub struct Decoder<R: io::Read> {
+pub struct Decoder<R>
+where
+    R: io::Read + io::Seek,
+{
     /// A reader is some object that implements the [`io::Read`] trait.
     pub reader: R,
     /// The endianness corresponding to this decoder.

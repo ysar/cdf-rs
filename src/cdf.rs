@@ -4,6 +4,7 @@ use semver::Version;
 
 use crate::decode::{Decodable, Decoder};
 use crate::error::DecodeError;
+use crate::record::adr::AttributeDescriptorRecord;
 use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::types::CdfUint4;
@@ -14,6 +15,7 @@ pub struct Cdf {
     pub is_compressed: bool,
     pub cdr: CdfDescriptorRecord,
     pub gdr: GlobalDescriptorRecord,
+    pub adr: Vec<AttributeDescriptorRecord>,
 }
 
 impl Decodable for Cdf {
@@ -53,10 +55,29 @@ impl Decodable for Cdf {
 
         let gdr = GlobalDescriptorRecord::decode(decoder)?;
 
+        // There MAY be an attribute descriptor record present. Collect these into a vec of ADRs.
+        // They are stored in the CDF in a linked-list with each record pointing to the next.
+        let mut adr = vec![];
+        if let Some(adr_head) = &gdr.adr_head {
+            let mut adr_next = adr_head.clone();
+            loop {
+                _ = decoder.reader.seek(SeekFrom::Start(*adr_next as u64))?;
+                let _adr = AttributeDescriptorRecord::decode(decoder)?;
+                if let Some(_a) = _adr.adr_next.clone() {
+                    adr.push(_adr);
+                    adr_next = _a;
+                } else {
+                    adr.push(_adr);
+                    break;
+                }
+            }
+        }
+
         Ok(Cdf {
             is_compressed,
             cdr,
             gdr,
+            adr,
         })
     }
 }
