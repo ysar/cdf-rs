@@ -97,7 +97,7 @@ impl Decodable for AttributeDescriptorRecord {
             vec![0u8; 256]
         };
         _ = decoder.reader.read_exact(&mut name);
-        let name: String = String::from_utf8(name)
+        let name: String = String::from_utf8(name.into_iter().take_while(|c| *c != 0).collect())
             .map_err(|e| DecodeError::Other(format!("Error decoding attribute name. - {e}")))?;
 
         Ok(AttributeDescriptorRecord {

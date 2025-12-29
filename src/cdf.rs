@@ -107,6 +107,7 @@ mod tests {
         let mut decoder = Decoder::new(f, Endian::Big, None)?;
         let cdf = Cdf::decode(&mut decoder)?;
         assert_eq!(cdf.is_compressed, false);
+        println!("{:?}", cdf);
         Ok(())
     }
 }

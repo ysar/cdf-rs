@@ -85,8 +85,10 @@ impl Decodable for CdfDescriptorRecord {
             vec![0u8; 256]
         };
         _ = decoder.reader.read_exact(&mut copyright);
-        let copyright: String = String::from_utf8(copyright)
-            .map_err(|e| DecodeError::Other(format!("Error decoding copyright notice. - {e}")))?;
+        let copyright: String = String::from_utf8(
+            copyright.into_iter().take_while(|c| *c != 0).collect(),
+        )
+        .map_err(|e| DecodeError::Other(format!("Error decoding copyright notice. - {e}")))?;
 
         Ok(CdfDescriptorRecord {
             record_size,

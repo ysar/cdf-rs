@@ -4,13 +4,14 @@
 use crate::decode::{Decodable, Decoder};
 use crate::error::DecodeError;
 use crate::repr::Endian;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::mem;
 use std::ops::Deref;
 
 macro_rules! impl_cdf_type {
     ($cdf_type:ident, $rust_type:ty) => {
-        #[derive(Debug, PartialEq, Clone)]
+        #[derive(PartialEq, Clone)]
         pub struct $cdf_type($rust_type);
 
         impl $cdf_type {
@@ -61,6 +62,19 @@ macro_rules! impl_cdf_type {
 
             fn deref(&self) -> &Self::Target {
                 &self.0
+            }
+        }
+
+        impl Display for $cdf_type {
+            // Required method
+            fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+                write!(f, "{}", self.0)
+            }
+        }
+        impl Debug for $cdf_type {
+            // Required method
+            fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+                write!(f, "{}", self.0)
             }
         }
     };
