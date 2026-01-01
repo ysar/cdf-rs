@@ -119,9 +119,8 @@ impl Decodable for AttributeGREntryDescriptorRecord {
     where
         R: io::Read + io::Seek,
     {
-        Err(DecodeError::Other(
+        unreachable!(
             "Little-endian decoding is not supported for records, only for values within records."
-                .to_string(),
-        ))
+        )
     }
 }
