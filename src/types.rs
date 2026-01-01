@@ -89,7 +89,7 @@ impl_cdf_type!(CdfReal8, f64);
 impl_cdf_type!(CdfEpoch, f64);
 impl_cdf_type!(CdfTimeTt2000, i64);
 impl_cdf_type!(CdfByte, i8);
-impl_cdf_type!(CdfChar, i8);
+impl_cdf_type!(CdfChar, i8); // Would be good to store chars here instead of ints.
 impl_cdf_type!(CdfUchar, u8);
 // pub type CdfFloat = CdfReal4;
 // pub type CdfDouble = CdfReal8;

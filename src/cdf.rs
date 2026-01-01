@@ -5,6 +5,8 @@ use semver::Version;
 use crate::decode::{Decodable, Decoder};
 use crate::error::DecodeError;
 use crate::record::adr::AttributeDescriptorRecord;
+use crate::record::agredr::AttributeGREntryDescriptorRecord;
+use crate::record::azedr::AttributeZEntryDescriptorRecord;
 use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::types::CdfUint4;
@@ -15,7 +17,9 @@ pub struct Cdf {
     pub is_compressed: bool,
     pub cdr: CdfDescriptorRecord,
     pub gdr: GlobalDescriptorRecord,
-    pub adr: Vec<AttributeDescriptorRecord>,
+    pub adr_vec: Vec<AttributeDescriptorRecord>,
+    pub agredr_vec: Vec<AttributeGREntryDescriptorRecord>,
+    pub azedr_vec: Vec<AttributeZEntryDescriptorRecord>,
 }
 
 impl Decodable for Cdf {
@@ -30,6 +34,8 @@ impl Decodable for Cdf {
         let m1 = CdfUint4::decode_be(decoder)?;
         let m2 = CdfUint4::decode_be(decoder)?;
 
+        // This is mostly a hack to get a hint of the CDF version. We read in the actual version
+        // properly in the CDR.
         let version = match m1.into() {
             0xcdf30001 => Version::new(3, 0, 0),
             0xcdf26002 => Version::new(2, 6, 0),
@@ -55,20 +61,63 @@ impl Decodable for Cdf {
 
         let gdr = GlobalDescriptorRecord::decode_be(decoder)?;
 
-        // There MAY be an attribute descriptor record present. Collect these into a vec of ADRs.
+        // There MAY be attribute descriptor records present. Collect these into a vec of ADRs.
         // They are stored in the CDF in a linked-list with each record pointing to the next.
-        let mut adr = vec![];
+        let mut adr_vec = vec![];
         if let Some(adr_head) = &gdr.adr_head {
             let mut adr_next = adr_head.clone();
             loop {
                 _ = decoder.reader.seek(SeekFrom::Start(*adr_next as u64))?;
-                let _adr = AttributeDescriptorRecord::decode_be(decoder)?;
-                if let Some(_a) = _adr.adr_next.clone() {
-                    adr.push(_adr);
-                    adr_next = _a;
+                let adr = AttributeDescriptorRecord::decode_be(decoder)?;
+                if let Some(_next) = adr.adr_next.clone() {
+                    adr_vec.push(adr);
+                    adr_next = _next;
                 } else {
-                    adr.push(_adr);
+                    adr_vec.push(adr);
                     break;
+                }
+            }
+        }
+
+        // There may be attribute entry descriptor records present in the form of a linked-list.
+        // There are two types - the AGREDR and AZEDR.  Both types have separate linked-lists.
+        // Each ADR may contain several linked-lists corresponding to
+        // attribute entries for that attribute.  Phew.  For now, let's flatten them all into one
+        // Vec and later deal with which AEDR corresponds to which attribute (this info is stored
+        // also in each AEDR)
+        let mut agredr_vec = vec![];
+        for adr in adr_vec.iter() {
+            if let Some(agredr_head) = &adr.agredr_head {
+                let mut agredr_next = agredr_head.clone();
+                loop {
+                    _ = decoder.reader.seek(SeekFrom::Start(*agredr_next as u64))?;
+                    let agredr = AttributeGREntryDescriptorRecord::decode_be(decoder)?;
+                    if let Some(_next) = agredr.agredr_next.clone() {
+                        agredr_vec.push(agredr);
+                        agredr_next = _next;
+                    } else {
+                        agredr_vec.push(agredr);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // looks absolutely ugly but don't know what we could do.  Maybe move this to a separate function.
+        let mut azedr_vec = vec![];
+        for adr in adr_vec.iter() {
+            if let Some(azedr_head) = &adr.azedr_head {
+                let mut azedr_next = azedr_head.clone();
+                loop {
+                    _ = decoder.reader.seek(SeekFrom::Start(*azedr_next as u64))?;
+                    let azedr = AttributeZEntryDescriptorRecord::decode_be(decoder)?;
+                    if let Some(_next) = azedr.azedr_next.clone() {
+                        azedr_vec.push(azedr);
+                        azedr_next = _next;
+                    } else {
+                        azedr_vec.push(azedr);
+                        break;
+                    }
                 }
             }
         }
@@ -77,7 +126,9 @@ impl Decodable for Cdf {
             is_compressed,
             cdr,
             gdr,
-            adr,
+            adr_vec,
+            agredr_vec,
+            azedr_vec,
         })
     }
 

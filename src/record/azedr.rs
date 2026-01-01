@@ -4,6 +4,7 @@ use crate::repr::Endian;
 use crate::types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfType};
 use std::io;
 
+#[derive(Debug)]
 pub struct AttributeZEntryDescriptorRecord {
     pub record_size: CdfInt8,
     pub record_type: CdfInt4,
