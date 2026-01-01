@@ -32,12 +32,12 @@ pub struct GlobalDescriptorRecord {
 impl Decodable for GlobalDescriptorRecord {
     type Value = Self;
 
-    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
     where
         R: io::Read + io::Seek,
     {
         let record_size = _decode_version3_int4_int8(decoder)?;
-        let record_type = CdfInt4::decode(decoder)?;
+        let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 2 {
             return Err(DecodeError::Other(format!(
                 "Invalid record_type for GDR - expected 2, received {}",
@@ -85,14 +85,14 @@ impl Decodable for GlobalDescriptorRecord {
             }
         };
 
-        let num_rvars = CdfInt4::decode(decoder)?;
-        let num_attributes = CdfInt4::decode(decoder)?;
-        let max_rvar = CdfInt4::decode(decoder)?;
-        let dim_rvar = CdfInt4::decode(decoder)?;
-        let num_zvars = CdfInt4::decode(decoder)?;
+        let num_rvars = CdfInt4::decode_be(decoder)?;
+        let num_attributes = CdfInt4::decode_be(decoder)?;
+        let max_rvar = CdfInt4::decode_be(decoder)?;
+        let dim_rvar = CdfInt4::decode_be(decoder)?;
+        let num_zvars = CdfInt4::decode_be(decoder)?;
         let uir_head = _decode_version3_int4_int8(decoder)?;
 
-        let rfu_c = CdfInt4::decode(decoder)?;
+        let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
             return Err(DecodeError::Other(format!(
                 "Invalid rfu_c read from file - expected 0, received {}",
@@ -100,9 +100,9 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let date_last_leapsecond_update = CdfInt4::decode(decoder)?;
+        let date_last_leapsecond_update = CdfInt4::decode_be(decoder)?;
 
-        let rfu_e = CdfInt4::decode(decoder)?;
+        let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
             return Err(DecodeError::Other(format!(
                 "Invalid rfu_e read from file - expected -1, received {}",
@@ -113,7 +113,7 @@ impl Decodable for GlobalDescriptorRecord {
         let mut sizes_rvar = vec![CdfInt4::from(0); *dim_rvar as usize].into_boxed_slice();
         for i in 0..*dim_rvar as usize {
             // If there are rVariables present, read in their dimensions.
-            sizes_rvar[i] = CdfInt4::decode(decoder)?;
+            sizes_rvar[i] = CdfInt4::decode_be(decoder)?;
         }
 
         Ok(Self {
@@ -135,6 +135,15 @@ impl Decodable for GlobalDescriptorRecord {
             sizes_rvar,
         })
     }
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
+        Err(DecodeError::Other(
+            "Little-endian decoding is not supported for records, only for values within records."
+                .to_string(),
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -142,7 +151,6 @@ mod tests {
 
     use crate::cdf;
     use crate::error::CdfError;
-    use crate::repr::Endian;
     use std::fs::File;
     use std::io::BufReader;
     use std::path::PathBuf;
@@ -202,8 +210,8 @@ mod tests {
 
         let f = File::open(path_test_file)?;
         let reader = BufReader::new(f);
-        let mut decoder = Decoder::new(reader, Endian::Big, None)?;
-        let cdf = cdf::Cdf::decode(&mut decoder)?;
+        let mut decoder = Decoder::new(reader)?;
+        let cdf = cdf::Cdf::decode_be(&mut decoder)?;
         let gdr = &cdf.gdr;
         assert_eq!(gdr.record_size, exp.record_size);
         assert_eq!(gdr.record_size, exp.record_size);

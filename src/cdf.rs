@@ -22,13 +22,13 @@ impl Decodable for Cdf {
     type Value = Self;
 
     /// Decode a value from the input that implements `io::Read`.
-    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
     where
         R: io::Read + io::Seek,
     {
         // Decode the magic numbers.  The first number is not that important as it seems.
-        let m1 = CdfUint4::decode(decoder)?;
-        let m2 = CdfUint4::decode(decoder)?;
+        let m1 = CdfUint4::decode_be(decoder)?;
+        let m2 = CdfUint4::decode_be(decoder)?;
 
         let version = match m1.into() {
             0xcdf30001 => Version::new(3, 0, 0),
@@ -45,7 +45,7 @@ impl Decodable for Cdf {
         };
 
         // Parse the CDF Descriptor Record that is present after the magic numbers.
-        let cdr = CdfDescriptorRecord::decode(decoder)?;
+        let cdr = CdfDescriptorRecord::decode_be(decoder)?;
 
         // Parse the Global Descriptor Record. The GDR can be present at any file offset, so we need
         // to `seek` to the `gdr_offset` value read in the CDR.
@@ -53,7 +53,7 @@ impl Decodable for Cdf {
             .reader
             .seek(SeekFrom::Start(*cdr.gdr_offset as u64))?;
 
-        let gdr = GlobalDescriptorRecord::decode(decoder)?;
+        let gdr = GlobalDescriptorRecord::decode_be(decoder)?;
 
         // There MAY be an attribute descriptor record present. Collect these into a vec of ADRs.
         // They are stored in the CDF in a linked-list with each record pointing to the next.
@@ -62,7 +62,7 @@ impl Decodable for Cdf {
             let mut adr_next = adr_head.clone();
             loop {
                 _ = decoder.reader.seek(SeekFrom::Start(*adr_next as u64))?;
-                let _adr = AttributeDescriptorRecord::decode(decoder)?;
+                let _adr = AttributeDescriptorRecord::decode_be(decoder)?;
                 if let Some(_a) = _adr.adr_next.clone() {
                     adr.push(_adr);
                     adr_next = _a;
@@ -80,13 +80,22 @@ impl Decodable for Cdf {
             adr,
         })
     }
+
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
+        Err(DecodeError::Other(
+            "Little-endian decoding is not supported for records, only for values within records."
+                .to_string(),
+        ))
+    }
 }
 
 #[cfg(test)]
 mod tests {
 
     use crate::error::CdfError;
-    use crate::repr::Endian;
     use std::fs::File;
     use std::path::PathBuf;
 
@@ -104,10 +113,10 @@ mod tests {
         .collect();
 
         let f = File::open(path_test_file)?;
-        let mut decoder = Decoder::new(f, Endian::Big, None)?;
-        let cdf = Cdf::decode(&mut decoder)?;
+        let mut decoder = Decoder::new(f)?;
+        let cdf = Cdf::decode_be(&mut decoder)?;
         assert_eq!(cdf.is_compressed, false);
-        println!("{:?}", cdf);
+        dbg!(cdf);
         Ok(())
     }
 }

@@ -27,12 +27,12 @@ pub struct AttributeDescriptorRecord {
 impl Decodable for AttributeDescriptorRecord {
     type Value = Self;
 
-    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
     where
         R: io::Read + io::Seek,
     {
         let record_size = _decode_version3_int4_int8(decoder)?;
-        let record_type = CdfInt4::decode(decoder)?;
+        let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 4 {
             return Err(DecodeError::Other(format!(
                 "Invalid record_type for ADR - expected 4, received {}",
@@ -58,12 +58,12 @@ impl Decodable for AttributeDescriptorRecord {
             }
         };
 
-        let scope = CdfInt4::decode(decoder)?;
-        let num = CdfInt4::decode(decoder)?;
-        let num_gr_entries = CdfInt4::decode(decoder)?;
-        let max_gr_entry = CdfInt4::decode(decoder)?;
+        let scope = CdfInt4::decode_be(decoder)?;
+        let num = CdfInt4::decode_be(decoder)?;
+        let num_gr_entries = CdfInt4::decode_be(decoder)?;
+        let max_gr_entry = CdfInt4::decode_be(decoder)?;
 
-        let rfu_a = CdfInt4::decode(decoder)?;
+        let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
             return Err(DecodeError::Other(format!(
                 "Invalid rfu_a read from file in ADR - expected 0, received {}",
@@ -80,10 +80,10 @@ impl Decodable for AttributeDescriptorRecord {
             }
         };
 
-        let num_z_entries = CdfInt4::decode(decoder)?;
-        let max_z_entry = CdfInt4::decode(decoder)?;
+        let num_z_entries = CdfInt4::decode_be(decoder)?;
+        let max_z_entry = CdfInt4::decode_be(decoder)?;
 
-        let rfu_e = CdfInt4::decode(decoder)?;
+        let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
             return Err(DecodeError::Other(format!(
                 "Invalid rfu_e read from file in ADR - expected -1, received {}",
@@ -117,6 +117,16 @@ impl Decodable for AttributeDescriptorRecord {
             name,
         })
     }
+
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
+        Err(DecodeError::Other(
+            "Little-endian decoding is not supported for records, only for values within records."
+                .to_string(),
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -124,7 +134,6 @@ mod tests {
 
     use crate::cdf;
     use crate::error::CdfError;
-    use crate::repr::Endian;
     use std::fs::File;
     use std::io::BufReader;
     use std::path::PathBuf;
@@ -148,8 +157,8 @@ mod tests {
 
         let f = File::open(path_test_file)?;
         let reader = BufReader::new(f);
-        let mut decoder = Decoder::new(reader, Endian::Big, None)?;
-        let cdf = cdf::Cdf::decode(&mut decoder)?;
+        let mut decoder = Decoder::new(reader)?;
+        let cdf = cdf::Cdf::decode_be(&mut decoder)?;
         let adr = &cdf.adr;
         // There are many ADR records in each file and I don't know how to validate each individually
         // so for now this hack of checking ADR lengths.

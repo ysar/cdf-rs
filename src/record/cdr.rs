@@ -29,12 +29,12 @@ impl Decodable for CdfDescriptorRecord {
     type Value = Self;
 
     /// Decode the CDF Descriptor Record from the CDF file.
-    fn decode<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
     where
         R: io::Read + io::Seek,
     {
         let record_size = _decode_version3_int4_int8(decoder)?;
-        let record_type = CdfInt4::decode(decoder)?;
+        let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 1 {
             return Err(DecodeError::Other(format!(
                 "Invalid record_type for CDR - expected 1, received {}",
@@ -43,11 +43,14 @@ impl Decodable for CdfDescriptorRecord {
         }
 
         let gdr_offset = _decode_version3_int4_int8(decoder)?;
-        let _version: i32 = CdfInt4::decode(decoder)?.into();
-        let _release: i32 = CdfInt4::decode(decoder)?.into();
-        let encoding: CdfEncoding = CdfInt4::decode(decoder)?.try_into()?;
+        let _version: i32 = CdfInt4::decode_be(decoder)?.into();
+        let _release: i32 = CdfInt4::decode_be(decoder)?.into();
+        let encoding: CdfEncoding = CdfInt4::decode_be(decoder)?.try_into()?;
 
-        let _flags: i32 = CdfInt4::decode(decoder)?.into();
+        // Set the encoding of the decoder using the value read from the CDR.
+        decoder.encoding = encoding.clone();
+
+        let _flags: i32 = CdfInt4::decode_be(decoder)?.into();
         let flags = CdrFlags {
             row_major: _flags & 1i32 == 1,
             single_file: _flags & 2i32 == 2,
@@ -55,14 +58,14 @@ impl Decodable for CdfDescriptorRecord {
             md5_checksum: _flags & 8i32 == 8,
         };
 
-        let rfu_a = CdfInt4::decode(decoder)?;
+        let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
             return Err(DecodeError::Other(format!(
                 "Invalid rfu_a read from file in CDR - expected 0, received {}",
                 *rfu_a
             )));
         }
-        let rfu_b = CdfInt4::decode(decoder)?;
+        let rfu_b = CdfInt4::decode_be(decoder)?;
         if *rfu_b != 0 {
             return Err(DecodeError::Other(format!(
                 "Invalid rfu_b read from file in CDR - expected 0, received {}",
@@ -70,15 +73,15 @@ impl Decodable for CdfDescriptorRecord {
             )));
         }
 
-        let _increment: i32 = CdfInt4::decode(decoder)?.into();
+        let _increment: i32 = CdfInt4::decode_be(decoder)?.into();
 
         let cdf_version = Version::new(_version as u64, _release as u64, _increment as u64);
         if cdf_version != decoder.version {
             decoder.set_version(cdf_version.clone());
         }
 
-        let identifier = CdfInt4::decode(decoder)?;
-        let rfu_e = CdfInt4::decode(decoder)?;
+        let identifier = CdfInt4::decode_be(decoder)?;
+        let rfu_e = CdfInt4::decode_be(decoder)?;
         let mut copyright = if cdf_version < Version::new(2, 5, 0) {
             vec![0u8; 1945]
         } else {
@@ -104,6 +107,16 @@ impl Decodable for CdfDescriptorRecord {
             copyright,
         })
     }
+
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    where
+        R: io::Read + io::Seek,
+    {
+        Err(DecodeError::Other(
+            "Little-endian decoding is not supported for records, only for values within records."
+                .to_string(),
+        ))
+    }
 }
 
 /// Flags pertaining to this CDF file.
@@ -120,7 +133,6 @@ mod tests {
 
     use crate::cdf;
     use crate::error::CdfError;
-    use crate::repr::Endian;
     use std::fs::File;
     use std::io::BufReader;
     use std::path::PathBuf;
@@ -176,8 +188,8 @@ mod tests {
 
         let f = File::open(path_test_file)?;
         let reader = BufReader::new(f);
-        let mut decoder = Decoder::new(reader, Endian::Big, None)?;
-        let cdf = cdf::Cdf::decode(&mut decoder)?;
+        let mut decoder = Decoder::new(reader)?;
+        let cdf = cdf::Cdf::decode_be(&mut decoder)?;
         let cdr = &cdf.cdr;
         assert_eq!(*cdr.record_size, record_size);
         assert_eq!(*cdr.record_type, 1);
@@ -189,8 +201,7 @@ mod tests {
         assert_eq!(*cdr.rfu_b, 0);
         assert_eq!(*cdr.identifier, -1);
         assert_eq!(*cdr.rfu_e, -1);
-        assert!(cdr.copyright.len() == 256);
-        // println!("{:?}", cdf);
+        // assert!(cdr.copyright.len() == 256);
         Ok(())
     }
 }

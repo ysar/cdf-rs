@@ -4,9 +4,9 @@ use crate::{
 };
 
 /// Data Encodings used in CDF (from CDF specification Table 5.11).
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum CdfEncoding {
-    /// Some files have set this to zero, against spec.
+    /// In case the encoding is unspecified.  This will raise an error.
     Unspecified = 0,
     /// eXternal Data Representation
     Network = 1,
@@ -54,8 +54,7 @@ impl CdfEncoding {
     /// Returns the endianness associated with this CDF data encoding.
     pub fn get_endian(&self) -> Result<Endian, CdfError> {
         match &self {
-            CdfEncoding::Unspecified
-            | CdfEncoding::Network
+            CdfEncoding::Network
             | CdfEncoding::Sun
             | CdfEncoding::Next
             | CdfEncoding::MacPpc
@@ -69,6 +68,10 @@ impl CdfEncoding {
             | CdfEncoding::AlphaVmsI
             | CdfEncoding::ArmLittle
             | CdfEncoding::Ia64VmsI => Ok(Endian::Little),
+
+            CdfEncoding::Unspecified => Err(CdfError::Other(
+                "A valid CDF encoding is not read in or is unspecified.".to_string(),
+            )),
 
             _ => Err(CdfError::Other(
                 "Encoding {self:?} not implemented.".to_string(),
