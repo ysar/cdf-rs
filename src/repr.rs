@@ -1,7 +1,4 @@
-use crate::{
-    error::{CdfError, DecodeError},
-    types::CdfInt4,
-};
+use crate::{error::DecodeError, types::CdfInt4};
 
 /// Data Encodings used in CDF (from CDF specification Table 5.11).
 #[derive(Debug, PartialEq, Clone)]
@@ -52,7 +49,7 @@ pub enum CdfEncoding {
 
 impl CdfEncoding {
     /// Returns the endianness associated with this CDF data encoding.
-    pub fn get_endian(&self) -> Result<Endian, CdfError> {
+    pub fn get_endian(&self) -> Result<Endian, DecodeError> {
         match &self {
             CdfEncoding::Network
             | CdfEncoding::Sun
@@ -69,11 +66,11 @@ impl CdfEncoding {
             | CdfEncoding::ArmLittle
             | CdfEncoding::Ia64VmsI => Ok(Endian::Little),
 
-            CdfEncoding::Unspecified => Err(CdfError::Other(
+            CdfEncoding::Unspecified => Err(DecodeError::Other(
                 "A valid CDF encoding is not read in or is unspecified.".to_string(),
             )),
 
-            _ => Err(CdfError::Other(
+            _ => Err(DecodeError::Other(
                 "Encoding {self:?} not implemented.".to_string(),
             )),
         }
@@ -111,6 +108,8 @@ impl TryFrom<CdfInt4> for CdfEncoding {
         }
     }
 }
+
+/// Enum to handle different endianess.
 pub enum Endian {
     Big,
     Little,

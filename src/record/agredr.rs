@@ -1,6 +1,7 @@
 use crate::decode::{Decodable, Decoder, _decode_version3_int4_int8};
 use crate::error::DecodeError;
-use crate::types::{CdfInt4, CdfInt8, CdfType};
+use crate::repr::Endian;
+use crate::types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfType};
 use std::io;
 
 pub struct AttributeGREntryDescriptorRecord {
@@ -54,21 +55,21 @@ impl Decodable for AttributeGREntryDescriptorRecord {
         let rfu_b = CdfInt4::decode_be(decoder)?;
         if *rfu_b != 0 {
             return Err(DecodeError::Other(format!(
-                "Invalid rfu_e read from file in AGREDR - expected 0, received {}",
+                "Invalid rfu_b read from file in AGREDR - expected 0, received {}",
                 *rfu_b
             )));
         }
         let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
             return Err(DecodeError::Other(format!(
-                "Invalid rfu_e read from file in AGREDR - expected 0, received {}",
+                "Invalid rfu_c read from file in AGREDR - expected 0, received {}",
                 *rfu_c
             )));
         }
         let rfu_d = CdfInt4::decode_be(decoder)?;
         if *rfu_d != -1 {
             return Err(DecodeError::Other(format!(
-                "Invalid rfu_e read from file in AGREDR - expected -1, received {}",
+                "Invalid rfu_d read from file in AGREDR - expected -1, received {}",
                 *rfu_d
             )));
         }
@@ -80,10 +81,22 @@ impl Decodable for AttributeGREntryDescriptorRecord {
             )));
         }
 
-        let value: Vec<CdfType> = Vec::with_capacity(*num_elements as usize);
+        // Read in the values of this attribute based on the encoding specified in the CDR.
+        let mut value: Vec<CdfType> = Vec::with_capacity(*num_elements as usize);
+        let endianness = decoder.encoding.get_endian()?;
 
-        // The `values` may have a different encoding (endianness) from the CDF file, and this is
-        // determined by the encoding of the CDF that the reader is aware of.
+        match endianness {
+            Endian::Big => {
+                for _ in 0..*num_elements {
+                    value.push(decode_cdf_type_be(decoder, *data_type)?);
+                }
+            }
+            Endian::Little => {
+                for _ in 0..*num_elements {
+                    value.push(decode_cdf_type_le(decoder, *data_type)?);
+                }
+            }
+        }
 
         Ok(AttributeGREntryDescriptorRecord {
             record_size,

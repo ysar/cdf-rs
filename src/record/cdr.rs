@@ -76,9 +76,9 @@ impl Decodable for CdfDescriptorRecord {
         let _increment: i32 = CdfInt4::decode_be(decoder)?.into();
 
         let cdf_version = Version::new(_version as u64, _release as u64, _increment as u64);
-        if cdf_version != decoder.version {
-            decoder.set_version(cdf_version.clone());
-        }
+
+        // Save the CDF version inside the decoder.
+        decoder.set_version(cdf_version.clone());
 
         let identifier = CdfInt4::decode_be(decoder)?;
         let rfu_e = CdfInt4::decode_be(decoder)?;

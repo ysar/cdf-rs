@@ -227,9 +227,12 @@ pub enum CdfType {
     Uchar(CdfUchar) = 52,
 }
 
-/// Decodes any CDF data type given its numeric identifier, as defined in Table 5.9 in the CDF
-/// specification.
-pub fn decode_cdf_type<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, DecodeError>
+/// Decodes any CDF data type assuming Big-Endian encoding, given its numeric identifier, as defined
+/// in Table 5.9 in the CDF specification.
+pub fn decode_cdf_type_be<R>(
+    decoder: &mut Decoder<R>,
+    data_type: i32,
+) -> Result<CdfType, DecodeError>
 where
     R: io::Read + io::Seek,
 {
@@ -241,14 +244,50 @@ where
         11 => Ok(CdfType::Uint1(CdfUint1::decode_be(decoder)?)),
         12 => Ok(CdfType::Uint2(CdfUint2::decode_be(decoder)?)),
         14 => Ok(CdfType::Uint4(CdfUint4::decode_be(decoder)?)),
-        21 | 44 => Ok(CdfType::Real4(CdfReal4::decode_be(decoder)?)),
-        22 | 45 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
+        21 => Ok(CdfType::Real4(CdfReal4::decode_be(decoder)?)),
+        22 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
         31 => Ok(CdfType::Epoch(CdfEpoch::decode_be(decoder)?)),
         32 => Ok(CdfType::Epoch16(CdfEpoch16::decode_be(decoder)?)),
         33 => Ok(CdfType::TimeTt2000(CdfTimeTt2000::decode_be(decoder)?)),
         41 => Ok(CdfType::Byte(CdfByte::decode_be(decoder)?)),
+        44 => Ok(CdfType::Real4(CdfReal4::decode_be(decoder)?)),
+        45 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
         51 => Ok(CdfType::Char(CdfChar::decode_be(decoder)?)),
         52 => Ok(CdfType::Uchar(CdfUchar::decode_be(decoder)?)),
+        e => Err(DecodeError::Other(format!(
+            "Invalid CDF data_type received - {}",
+            e
+        ))),
+    }
+}
+
+/// Decodes any CDF data type assuming Little-Endian encoding, given its numeric identifier, as defined
+/// in Table 5.9 in the CDF specification.
+pub fn decode_cdf_type_le<R>(
+    decoder: &mut Decoder<R>,
+    data_type: i32,
+) -> Result<CdfType, DecodeError>
+where
+    R: io::Read + io::Seek,
+{
+    match data_type {
+        1 => Ok(CdfType::Int1(CdfInt1::decode_le(decoder)?)),
+        2 => Ok(CdfType::Int2(CdfInt2::decode_le(decoder)?)),
+        4 => Ok(CdfType::Int4(CdfInt4::decode_le(decoder)?)),
+        8 => Ok(CdfType::Int8(CdfInt8::decode_le(decoder)?)),
+        11 => Ok(CdfType::Uint1(CdfUint1::decode_le(decoder)?)),
+        12 => Ok(CdfType::Uint2(CdfUint2::decode_le(decoder)?)),
+        14 => Ok(CdfType::Uint4(CdfUint4::decode_le(decoder)?)),
+        21 => Ok(CdfType::Real4(CdfReal4::decode_le(decoder)?)),
+        22 => Ok(CdfType::Real8(CdfReal8::decode_le(decoder)?)),
+        31 => Ok(CdfType::Epoch(CdfEpoch::decode_le(decoder)?)),
+        32 => Ok(CdfType::Epoch16(CdfEpoch16::decode_le(decoder)?)),
+        33 => Ok(CdfType::TimeTt2000(CdfTimeTt2000::decode_le(decoder)?)),
+        41 => Ok(CdfType::Byte(CdfByte::decode_le(decoder)?)),
+        44 => Ok(CdfType::Real4(CdfReal4::decode_le(decoder)?)),
+        45 => Ok(CdfType::Real8(CdfReal8::decode_le(decoder)?)),
+        51 => Ok(CdfType::Char(CdfChar::decode_le(decoder)?)),
+        52 => Ok(CdfType::Uchar(CdfUchar::decode_le(decoder)?)),
         e => Err(DecodeError::Other(format!(
             "Invalid CDF data_type received - {}",
             e
