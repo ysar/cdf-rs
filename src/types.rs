@@ -170,8 +170,8 @@ macro_rules! impl_decodable {
 
                     decoder
                         .reader
-                        .read_exact(&mut buffer[..])
-                        .map_err(|err| DecodeError::Other(format!("{err}")))?;
+                        .read_exact(&mut buffer[..])?;
+                        // .map_err(|err| DecodeError(format!("{err}")))?;
 
                     Ok($cdf_type::from_be_bytes(buffer))
                 }
@@ -184,8 +184,8 @@ macro_rules! impl_decodable {
 
                     decoder
                         .reader
-                        .read_exact(&mut buffer[..])
-                        .map_err(|err| DecodeError::Other(format!("{err}")))?;
+                        .read_exact(&mut buffer[..])?;
+                        // .map_err(|err| DecodeError(format!("{err}")))?;
 
                     Ok($cdf_type::from_le_bytes(buffer))
                 }
@@ -254,7 +254,7 @@ where
         45 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
         51 => Ok(CdfType::Char(CdfChar::decode_be(decoder)?)),
         52 => Ok(CdfType::Uchar(CdfUchar::decode_be(decoder)?)),
-        e => Err(DecodeError::Other(format!(
+        e => Err(DecodeError(format!(
             "Invalid CDF data_type received - {}",
             e
         ))),
@@ -288,7 +288,7 @@ where
         45 => Ok(CdfType::Real8(CdfReal8::decode_le(decoder)?)),
         51 => Ok(CdfType::Char(CdfChar::decode_le(decoder)?)),
         52 => Ok(CdfType::Uchar(CdfUchar::decode_le(decoder)?)),
-        e => Err(DecodeError::Other(format!(
+        e => Err(DecodeError(format!(
             "Invalid CDF data_type received - {}",
             e
         ))),

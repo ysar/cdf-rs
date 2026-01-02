@@ -3,9 +3,5 @@ name = "cdf_rs"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-semver = "1.0.23"
-thiserror = "1.0.65"
-
 [dev-dependencies]
 paste = "1.0.15"

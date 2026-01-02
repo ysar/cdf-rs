@@ -33,7 +33,7 @@ impl Decodable for AttributeZEntryDescriptorRecord {
         let record_size = _decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 9 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid record_type for AZEDR - expected 9, received {}",
                 *record_type
             )));
@@ -56,28 +56,28 @@ impl Decodable for AttributeZEntryDescriptorRecord {
 
         let rfu_b = CdfInt4::decode_be(decoder)?;
         if *rfu_b != 0 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_b read from file in AZEDR - expected 0, received {}",
                 *rfu_b
             )));
         }
         let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_c read from file in AZEDR - expected 0, received {}",
                 *rfu_c
             )));
         }
         let rfu_d = CdfInt4::decode_be(decoder)?;
         if *rfu_d != -1 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_d read from file in AZEDR - expected -1, received {}",
                 *rfu_d
             )));
         }
         let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_e read from file in AZEDR - expected -1, received {}",
                 *rfu_e
             )));

@@ -1,8 +1,7 @@
-use semver::Version;
-
 use crate::{
     decode::{Decodable, Decoder, _decode_version3_int4_int8},
     error::DecodeError,
+    repr::CdfVersion,
     types::{CdfInt4, CdfInt8},
 };
 use std::io;
@@ -39,7 +38,7 @@ impl Decodable for GlobalDescriptorRecord {
         let record_size = _decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 2 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid record_type for GDR - expected 2, received {}",
                 *record_type
             )));
@@ -59,7 +58,7 @@ impl Decodable for GlobalDescriptorRecord {
             //     None
             // } else {
             let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 || decoder.version < Version::new(2, 2, 0) {
+            if *_v == 0 || decoder.version < CdfVersion::new(2, 2, 0) {
                 None
             } else {
                 Some(_v)
@@ -78,7 +77,7 @@ impl Decodable for GlobalDescriptorRecord {
         // eof is undefined for CDF < v2.1
         let eof = {
             let _eof = _decode_version3_int4_int8(decoder)?;
-            if decoder.version < Version::new(2, 1, 0) {
+            if decoder.version < CdfVersion::new(2, 1, 0) {
                 None
             } else {
                 Some(_eof)
@@ -94,7 +93,7 @@ impl Decodable for GlobalDescriptorRecord {
 
         let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_c read from file - expected 0, received {}",
                 *rfu_c
             )));
@@ -104,7 +103,7 @@ impl Decodable for GlobalDescriptorRecord {
 
         let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_e read from file - expected -1, received {}",
                 *rfu_e
             )));

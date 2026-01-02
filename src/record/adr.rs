@@ -35,7 +35,7 @@ impl Decodable for AttributeDescriptorRecord {
         let record_size = _decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 4 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid record_type for ADR - expected 4, received {}",
                 *record_type
             )));
@@ -66,7 +66,7 @@ impl Decodable for AttributeDescriptorRecord {
 
         let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_a read from file in ADR - expected 0, received {}",
                 *rfu_a
             )));
@@ -86,7 +86,7 @@ impl Decodable for AttributeDescriptorRecord {
 
         let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
-            return Err(DecodeError::Other(format!(
+            return Err(DecodeError(format!(
                 "Invalid rfu_e read from file in ADR - expected -1, received {}",
                 *rfu_e
             )));
@@ -99,7 +99,7 @@ impl Decodable for AttributeDescriptorRecord {
         };
         _ = decoder.reader.read_exact(&mut name);
         let name: String = String::from_utf8(name.into_iter().take_while(|c| *c != 0).collect())
-            .map_err(|e| DecodeError::Other(format!("Error decoding attribute name. - {e}")))?;
+            .map_err(|e| DecodeError(format!("Error decoding attribute name. - {e}")))?;
 
         Ok(AttributeDescriptorRecord {
             record_size,

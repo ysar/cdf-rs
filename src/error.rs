@@ -1,50 +1,46 @@
-use std::io;
-use thiserror::Error;
+use std::{fmt::Display, io};
 
-/// The top-level error to deal with module level tasks.
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum CdfError {
-    /// Decoding errors
-    #[error("{0:}")]
-    Decode(#[from] DecodeError),
-
-    /// Encoding errors
-    #[error("{0:}")]
-    Encode(#[from] EncodeError),
-
-    /// Any IO error.
-    #[error("{0:}")]
-    IoError(#[from] io::Error),
-
-    /// Any other error
-    #[error("{0:}")]
+    Decode(DecodeError),
+    Encode(String),
+    Io(io::Error),
     Other(String),
 }
 
-/// Decoding errors
-#[derive(Error, Debug)]
-pub enum DecodeError {
-    /// IO error resulting from decoding.
-    #[error("{0:}")]
-    IoError(#[from] io::Error),
-
-    /// If the CDF magic number is invalid.
-    #[error("Invalid magic number - {0:x}")]
-    InvalidMagicNumber(u32),
-
-    /// Any other error related to decoding.
-    #[error("{0:}")]
-    Other(String),
+impl From<DecodeError> for CdfError {
+    fn from(value: DecodeError) -> Self {
+        CdfError::Decode(value)
+    }
 }
 
-/// Encoding errors.
-#[derive(Error, Debug)]
-pub enum EncodeError {
-    /// IO error related to encoding.
-    #[error("{0:}")]
-    IoError(#[from] io::Error),
+impl From<io::Error> for CdfError {
+    fn from(value: io::Error) -> Self {
+        CdfError::Io(value)
+    }
+}
 
-    /// Any other error resulting from encoding.
-    #[error("{0:}")]
-    Other(String),
+impl Display for CdfError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CdfError::Decode(err) => err.fmt(f),
+            CdfError::Encode(_) => write!(f, "encoding error."),
+            CdfError::Io(err) => err.fmt(f),
+            CdfError::Other(err) => write!(f, "{err}"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DecodeError(pub String);
+
+impl From<io::Error> for DecodeError {
+    fn from(value: io::Error) -> Self {
+        DecodeError(value.to_string())
+    }
+}
+impl Display for DecodeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }

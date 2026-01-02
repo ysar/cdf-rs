@@ -66,13 +66,11 @@ impl CdfEncoding {
             | CdfEncoding::ArmLittle
             | CdfEncoding::Ia64VmsI => Ok(Endian::Little),
 
-            CdfEncoding::Unspecified => Err(DecodeError::Other(
+            CdfEncoding::Unspecified => Err(DecodeError(
                 "A valid CDF encoding is not read in or is unspecified.".to_string(),
             )),
 
-            _ => Err(DecodeError::Other(
-                "Encoding {self:?} not implemented.".to_string(),
-            )),
+            _ => Err(DecodeError(format!("Encoding {self:?} not implemented."))),
         }
     }
 }
@@ -102,9 +100,7 @@ impl TryFrom<CdfInt4> for CdfEncoding {
             19 => Ok(CdfEncoding::Ia64VmsI),
             20 => Ok(CdfEncoding::Ia64VmsD),
             21 => Ok(CdfEncoding::Ia64VmsG),
-            v => Err(DecodeError::Other(format!(
-                "Invalid encoding integer - {v}."
-            ))),
+            v => Err(DecodeError(format!("Invalid encoding integer - {v}."))),
         }
     }
 }
@@ -113,4 +109,22 @@ impl TryFrom<CdfInt4> for CdfEncoding {
 pub enum Endian {
     Big,
     Little,
+}
+
+/// Stores the version of the CDF in a simple implementation of semantic versioning.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CdfVersion {
+    pub major: u16,
+    pub minor: u16,
+    pub patch: u16,
+}
+
+impl CdfVersion {
+    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
+        CdfVersion {
+            major,
+            minor,
+            patch,
+        }
+    }
 }

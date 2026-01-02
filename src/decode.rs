@@ -1,9 +1,7 @@
 use std::io;
 
-use semver::Version;
-
 use crate::error::{CdfError, DecodeError};
-use crate::repr::CdfEncoding;
+use crate::repr::{CdfEncoding, CdfVersion};
 use crate::types::{CdfInt4, CdfInt8};
 
 /// Trait for decoding a CDF result from a reader.
@@ -36,7 +34,7 @@ where
     pub encoding: CdfEncoding,
     /// CDF version.  This  is necessary to include in the decoder since different versions have
     /// different formats.
-    pub version: Version,
+    pub version: CdfVersion,
 }
 
 impl<R> Decoder<R>
@@ -48,11 +46,11 @@ where
         Ok(Decoder {
             reader,
             encoding: CdfEncoding::Unspecified,
-            version: Version::new(0, 0, 0),
+            version: CdfVersion::new(0, 0, 0),
         })
     }
 
-    pub fn set_version(&mut self, version: Version) {
+    pub fn set_version(&mut self, version: CdfVersion) {
         self.version = version;
     }
 }

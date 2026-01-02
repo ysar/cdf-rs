@@ -21,7 +21,7 @@ implement decoding (deserializing) in a zero-copy manner, a CDF file allows for 
 to have different endianness, even within one file. This makes memory-mapping a more challenging 
 task than what I can currently achieve.
 
-[!NOTE]
+> [!NOTE]
 > This library is a work in progress. Currently I am focusing on decoding (parsing) CDFs, since 
 most users are interested in reading CDF files rather than generating them. After the decoding part 
 is done, I will work on the encoding (writing).  Hopefully the encoders are not too difficult to 

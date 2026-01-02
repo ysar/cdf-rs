@@ -1,7 +1,5 @@
 use std::io::{self, SeekFrom};
 
-use semver::Version;
-
 use crate::decode::{Decodable, Decoder};
 use crate::error::DecodeError;
 use crate::record::adr::AttributeDescriptorRecord;
@@ -10,6 +8,7 @@ use crate::record::azedr::AttributeZEntryDescriptorRecord;
 use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
+use crate::repr::CdfVersion;
 use crate::types::CdfUint4;
 
 /// General struct to hold the contents of the CDF file.
@@ -38,17 +37,17 @@ impl Decodable for Cdf {
         // This is mostly a hack to get a hint of the CDF version. We read in the actual version
         // properly in the CDR.
         let version = match m1.into() {
-            0xcdf30001 => Version::new(3, 0, 0),
-            0xcdf26002 => Version::new(2, 6, 0),
-            0x0000ffff => Version::new(2, 0, 0),
-            v => return Err(DecodeError::InvalidMagicNumber(v)),
+            0xcdf30001 => CdfVersion::new(3, 0, 0),
+            0xcdf26002 => CdfVersion::new(2, 6, 0),
+            0x0000ffff => CdfVersion::new(2, 0, 0),
+            v => return Err(DecodeError(format!("Invalid magic number - {}", v))),
         };
         decoder.set_version(version);
 
         let is_compressed: bool = match m2.into() {
             0x0000ffffu32 => false,
             0xcccc0001u32 => true,
-            v => return Err(DecodeError::InvalidMagicNumber(v)),
+            v => return Err(DecodeError(format!("Invalid magic number - {}", v))),
         };
 
         // Parse the CDF Descriptor Record that is present after the magic numbers.
