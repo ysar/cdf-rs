@@ -1,17 +1,16 @@
-use std::{fmt::Display, io};
+use std::{fmt::Display, io, num::TryFromIntError};
 
+/// Top-level error to handle all kinds of errors associated with this library.
 #[derive(Debug)]
 pub enum CdfError {
-    Decode(DecodeError),
+    /// Erros related to decoding / deserializing.
+    Decode(String),
+    /// Errors related to encoding / serializing.
     Encode(String),
+    /// IO errors passed from [`std::io`]
     Io(io::Error),
+    /// Other errors that do not belong in any other category.
     Other(String),
-}
-
-impl From<DecodeError> for CdfError {
-    fn from(value: DecodeError) -> Self {
-        CdfError::Decode(value)
-    }
 }
 
 impl From<io::Error> for CdfError {
@@ -20,27 +19,19 @@ impl From<io::Error> for CdfError {
     }
 }
 
+impl From<TryFromIntError> for CdfError {
+    fn from(value: TryFromIntError) -> Self {
+        CdfError::Decode(value.to_string())
+    }
+}
+
 impl Display for CdfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CdfError::Decode(err) => err.fmt(f),
+            CdfError::Decode(err) => write!(f, "{err}"),
             CdfError::Encode(_) => write!(f, "encoding error."),
             CdfError::Io(err) => err.fmt(f),
             CdfError::Other(err) => write!(f, "{err}"),
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct DecodeError(pub String);
-
-impl From<io::Error> for DecodeError {
-    fn from(value: io::Error) -> Self {
-        DecodeError(value.to_string())
-    }
-}
-impl Display for DecodeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
     }
 }

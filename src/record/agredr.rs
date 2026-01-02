@@ -1,24 +1,39 @@
-use crate::decode::{Decodable, Decoder, _decode_version3_int4_int8};
-use crate::error::DecodeError;
+use crate::decode::{decode_version3_int4_int8, Decodable, Decoder};
+use crate::error::CdfError;
 use crate::record::collection::RecordList;
 use crate::repr::Endian;
 use crate::types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfType};
 use std::io;
 
+/// Struct to store contents of an Attribute Entry Descriptor Record that stores information on
+/// global attributes and rVariable attributes.
 #[derive(Debug)]
 pub struct AttributeGREntryDescriptorRecord {
+    /// The size of this record in bytes.
     pub record_size: CdfInt8,
+    /// The type of record as defined in the CDF specfication as an integer.
     pub record_type: CdfInt4,
+    /// The file offset of the next AGREDR record.
     pub agredr_next: Option<CdfInt8>,
+    /// The attribute number that this AGREDR correspond to.
     pub attr_num: CdfInt4,
+    /// The type of data stored in this AGREDR stored as an integer identifier.
     pub data_type: CdfInt4,
+    /// The numeric identifier for this AGREDR.
     pub num: CdfInt4,
+    /// The number of elements stored within this record.
     pub num_elements: CdfInt4,
+    /// The number of strings stored within this record.
     pub num_strings: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_b: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_c: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_d: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_e: CdfInt4,
+    /// The values stored inside this AGREDR.
     pub value: Vec<CdfType>,
 }
 
@@ -26,25 +41,25 @@ impl Decodable for AttributeGREntryDescriptorRecord {
     type Value = Self;
 
     /// Decode a value from the input that implements `io::Read`.
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
     where
         R: io::Read + io::Seek,
     {
-        let record_size = _decode_version3_int4_int8(decoder)?;
+        let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 5 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid record_type for AGREDR - expected 5, received {}",
                 *record_type
             )));
-        };
+        }
 
         let agredr_next = {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
@@ -56,35 +71,35 @@ impl Decodable for AttributeGREntryDescriptorRecord {
 
         let rfu_b = CdfInt4::decode_be(decoder)?;
         if *rfu_b != 0 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_b read from file in AGREDR - expected 0, received {}",
                 *rfu_b
             )));
         }
         let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_c read from file in AGREDR - expected 0, received {}",
                 *rfu_c
             )));
         }
         let rfu_d = CdfInt4::decode_be(decoder)?;
         if *rfu_d != -1 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_d read from file in AGREDR - expected -1, received {}",
                 *rfu_d
             )));
         }
         let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_e read from file in AGREDR - expected -1, received {}",
                 *rfu_e
             )));
         }
 
         // Read in the values of this attribute based on the encoding specified in the CDR.
-        let mut value: Vec<CdfType> = Vec::with_capacity(*num_elements as usize);
+        let mut value: Vec<CdfType> = Vec::with_capacity(usize::try_from(*num_elements)?);
         let endianness = decoder.encoding.get_endian()?;
 
         match endianness {
@@ -117,7 +132,7 @@ impl Decodable for AttributeGREntryDescriptorRecord {
         })
     }
 
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

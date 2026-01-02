@@ -1,6 +1,6 @@
 use crate::{
-    decode::{Decodable, Decoder, _decode_version3_int4_int8},
-    error::DecodeError,
+    decode::{decode_version3_int4_int8, Decodable, Decoder},
+    error::CdfError,
     repr::{CdfEncoding, CdfVersion},
     types::{CdfInt4, CdfInt8},
 };
@@ -10,16 +10,27 @@ use std::io;
 /// general information about the CDF.
 #[derive(Debug)]
 pub struct CdfDescriptorRecord {
+    /// The size of this record in bytes.
     pub record_size: CdfInt8,
+    /// The type of record as defined in the CDF specfication as an integer.
     pub record_type: CdfInt4,
+    /// The file offset of the global descriptor record.
     pub gdr_offset: CdfInt8,
+    /// The version of the CDF library used to create this file.
     pub cdf_version: CdfVersion,
+    /// The encoding for data stored inside this CDF.
     pub encoding: CdfEncoding,
+    /// Flags holds information on different options for this file.
     pub flags: CdrFlags,
+    /// A value reserved for future use.
     pub rfu_a: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_b: CdfInt4,
+    /// Identifier.
     pub identifier: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_e: CdfInt4,
+    /// The copyright string.
     pub copyright: String,
 }
 
@@ -27,53 +38,57 @@ impl Decodable for CdfDescriptorRecord {
     type Value = Self;
 
     /// Decode the CDF Descriptor Record from the CDF file.
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {
-        let record_size = _decode_version3_int4_int8(decoder)?;
+        let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 1 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid record_type for CDR - expected 1, received {}",
                 *record_type
             )));
         }
 
-        let gdr_offset = _decode_version3_int4_int8(decoder)?;
-        let _version: i32 = CdfInt4::decode_be(decoder)?.into();
-        let _release: i32 = CdfInt4::decode_be(decoder)?.into();
+        let gdr_offset = decode_version3_int4_int8(decoder)?;
+        let version: i32 = CdfInt4::decode_be(decoder)?.into();
+        let release: i32 = CdfInt4::decode_be(decoder)?.into();
         let encoding: CdfEncoding = CdfInt4::decode_be(decoder)?.try_into()?;
 
         // Set the encoding of the decoder using the value read from the CDR.
         decoder.encoding = encoding.clone();
 
-        let _flags: i32 = CdfInt4::decode_be(decoder)?.into();
+        let flags: i32 = CdfInt4::decode_be(decoder)?.into();
         let flags = CdrFlags {
-            row_major: _flags & 1i32 == 1,
-            single_file: _flags & 2i32 == 2,
-            has_checksum: _flags & 4i32 == 4,
-            md5_checksum: _flags & 8i32 == 8,
+            row_major: flags & 1i32 == 1,
+            single_file: flags & 2i32 == 2,
+            has_checksum: flags & 4i32 == 4,
+            md5_checksum: flags & 8i32 == 8,
         };
 
         let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_a read from file in CDR - expected 0, received {}",
                 *rfu_a
             )));
         }
         let rfu_b = CdfInt4::decode_be(decoder)?;
         if *rfu_b != 0 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_b read from file in CDR - expected 0, received {}",
                 *rfu_b
             )));
         }
 
-        let _increment: i32 = CdfInt4::decode_be(decoder)?.into();
+        let increment: i32 = CdfInt4::decode_be(decoder)?.into();
 
-        let cdf_version = CdfVersion::new(_version as u16, _release as u16, _increment as u16);
+        let cdf_version = CdfVersion::new(
+            u16::try_from(version)?,
+            u16::try_from(release)?,
+            u16::try_from(increment)?,
+        );
 
         // Save the CDF version inside the decoder.
         decoder.set_version(cdf_version.clone());
@@ -88,7 +103,7 @@ impl Decodable for CdfDescriptorRecord {
         _ = decoder.reader.read_exact(&mut copyright);
         let copyright: String =
             String::from_utf8(copyright.into_iter().take_while(|c| *c != 0).collect())
-                .map_err(|e| DecodeError(format!("Error decoding copyright notice. - {e}")))?;
+                .map_err(|e| CdfError::Decode(format!("Error decoding copyright notice. - {e}")))?;
 
         Ok(CdfDescriptorRecord {
             record_size,
@@ -105,7 +120,7 @@ impl Decodable for CdfDescriptorRecord {
         })
     }
 
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

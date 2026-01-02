@@ -1,6 +1,6 @@
 use crate::{
-    decode::{Decodable, Decoder, _decode_version3_int4_int8},
-    error::DecodeError,
+    decode::{decode_version3_int4_int8, Decodable, Decoder},
+    error::CdfError,
     record::collection::RecordList,
     types::{CdfInt4, CdfInt8},
 };
@@ -9,53 +9,67 @@ use std::io;
 /// The Attribute Descriptor Record contains information on each attribute in the CDF.
 #[derive(Debug)]
 pub struct AttributeDescriptorRecord {
+    /// The size in bytes of this record.
     pub record_size: CdfInt8,
+    /// The type of record as defined in the CDF specfication as an integer.
     pub record_type: CdfInt4,
+    /// The file offset of the next ADR.
     pub adr_next: Option<CdfInt8>,
+    /// The file offset of the first AGREDR corresponding to this ADR.
     pub agredr_head: Option<CdfInt8>,
+    /// Scope.
     pub scope: CdfInt4,
+    /// The numeric identifier for this attribute.
     pub num: CdfInt4,
+    /// The number of GR attributes stored within this attribute.
     pub num_gr_entries: CdfInt4,
+    /// The maximum GR entry.
     pub max_gr_entry: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_a: CdfInt4,
+    /// The file offset of the first AZEDR corresponding to this ADR.
     pub azedr_head: Option<CdfInt8>,
+    /// The number of Z attributes stored within this attribute.
     pub num_z_entries: CdfInt4,
+    /// The maximum Z entry.
     pub max_z_entry: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_e: CdfInt4,
+    /// Name of this attribute.
     pub name: String,
 }
 
 impl Decodable for AttributeDescriptorRecord {
     type Value = Self;
 
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
     where
         R: io::Read + io::Seek,
     {
-        let record_size = _decode_version3_int4_int8(decoder)?;
+        let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 4 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid record_type for ADR - expected 4, received {}",
                 *record_type
             )));
-        };
+        }
 
         let adr_next = {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
         let agredr_head = {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
@@ -66,18 +80,18 @@ impl Decodable for AttributeDescriptorRecord {
 
         let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_a read from file in ADR - expected 0, received {}",
                 *rfu_a
             )));
         }
 
         let azedr_head = {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
@@ -86,7 +100,7 @@ impl Decodable for AttributeDescriptorRecord {
 
         let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_e read from file in ADR - expected -1, received {}",
                 *rfu_e
             )));
@@ -99,7 +113,7 @@ impl Decodable for AttributeDescriptorRecord {
         };
         _ = decoder.reader.read_exact(&mut name);
         let name: String = String::from_utf8(name.into_iter().take_while(|c| *c != 0).collect())
-            .map_err(|e| DecodeError(format!("Error decoding attribute name. - {e}")))?;
+            .map_err(|e| CdfError::Decode(format!("Error decoding attribute name. - {e}")))?;
 
         Ok(AttributeDescriptorRecord {
             record_size,
@@ -119,7 +133,7 @@ impl Decodable for AttributeDescriptorRecord {
         })
     }
 
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

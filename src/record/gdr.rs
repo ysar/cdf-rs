@@ -1,6 +1,6 @@
 use crate::{
-    decode::{Decodable, Decoder, _decode_version3_int4_int8},
-    error::DecodeError,
+    decode::{decode_version3_int4_int8, Decodable, Decoder},
+    error::CdfError,
     repr::CdfVersion,
     types::{CdfInt4, CdfInt8},
 };
@@ -10,45 +10,62 @@ use std::io;
 /// Record, at the file offset noted in the CDR `gdr_offset` attribute.
 #[derive(Debug)]
 pub struct GlobalDescriptorRecord {
+    /// The size of this record in bytes.
     pub record_size: CdfInt8,
+    /// The type of record as defined in the CDF specfication as an integer.
     pub record_type: CdfInt4,
+    /// The file-offset of the first R Variable Descriptor Record.
     pub rvdr_head: Option<CdfInt8>,
+    /// The file-offset of the first Z Variable Descriptor Record.
     pub zvdr_head: Option<CdfInt8>,
+    /// The file-offset of the first Attribute Descriptor Record.
     pub adr_head: Option<CdfInt8>,
+    /// The file-offset representing the end-of-file.
     pub eof: Option<CdfInt8>,
+    /// Number of R variables.
     pub num_rvars: CdfInt4,
+    /// Number of attributes.
     pub num_attributes: CdfInt4,
+    /// Maximum R variable.
     pub max_rvar: CdfInt4,
+    /// Dimensions for R variables (Note: all R variables have the same dimension.)
     pub dim_rvar: CdfInt4,
+    /// Number of Z variables.
     pub num_zvars: CdfInt4,
+    /// The file offset for the Unused Internal Record.
     pub uir_head: CdfInt8,
+    /// A value reserved for future use.
     pub rfu_c: CdfInt4,
+    /// Date of last leapsecond update.
     pub date_last_leapsecond_update: CdfInt4,
+    /// A value reserved for future use.
     pub rfu_e: CdfInt4,
+    /// Sizes for R variables.
     pub sizes_rvar: Box<[CdfInt4]>,
 }
 
 impl Decodable for GlobalDescriptorRecord {
     type Value = Self;
 
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, DecodeError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
     where
         R: io::Read + io::Seek,
     {
-        let record_size = _decode_version3_int4_int8(decoder)?;
+        let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 2 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid record_type for GDR - expected 2, received {}",
                 *record_type
             )));
-        };
+        }
+
         let rvdr_head = {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
@@ -57,30 +74,30 @@ impl Decodable for GlobalDescriptorRecord {
             // if decoder.version < Version::new(2, 2, 0) {
             //     None
             // } else {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 || decoder.version < CdfVersion::new(2, 2, 0) {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 || decoder.version < CdfVersion::new(2, 2, 0) {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
         let adr_head = {
-            let _v = _decode_version3_int4_int8(decoder)?;
-            if *_v == 0 {
+            let v = decode_version3_int4_int8(decoder)?;
+            if *v == 0 {
                 None
             } else {
-                Some(_v)
+                Some(v)
             }
         };
 
         // eof is undefined for CDF < v2.1
         let eof = {
-            let _eof = _decode_version3_int4_int8(decoder)?;
+            let eof = decode_version3_int4_int8(decoder)?;
             if decoder.version < CdfVersion::new(2, 1, 0) {
                 None
             } else {
-                Some(_eof)
+                Some(eof)
             }
         };
 
@@ -89,11 +106,11 @@ impl Decodable for GlobalDescriptorRecord {
         let max_rvar = CdfInt4::decode_be(decoder)?;
         let dim_rvar = CdfInt4::decode_be(decoder)?;
         let num_zvars = CdfInt4::decode_be(decoder)?;
-        let uir_head = _decode_version3_int4_int8(decoder)?;
+        let uir_head = decode_version3_int4_int8(decoder)?;
 
         let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_c read from file - expected 0, received {}",
                 *rfu_c
             )));
@@ -103,14 +120,14 @@ impl Decodable for GlobalDescriptorRecord {
 
         let rfu_e = CdfInt4::decode_be(decoder)?;
         if *rfu_e != -1 {
-            return Err(DecodeError(format!(
+            return Err(CdfError::Decode(format!(
                 "Invalid rfu_e read from file - expected -1, received {}",
                 *rfu_e
             )));
         }
 
-        let mut sizes_rvar = vec![CdfInt4::from(0); *dim_rvar as usize].into_boxed_slice();
-        for i in 0..*dim_rvar as usize {
+        let mut sizes_rvar = vec![CdfInt4::from(0); usize::try_from(*dim_rvar)?].into_boxed_slice();
+        for i in 0..usize::try_from(*dim_rvar)? {
             // If there are rVariables present, read in their dimensions.
             sizes_rvar[i] = CdfInt4::decode_be(decoder)?;
         }
@@ -135,7 +152,7 @@ impl Decodable for GlobalDescriptorRecord {
         })
     }
 
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, DecodeError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {
@@ -167,7 +184,7 @@ mod tests {
             rvdr_head: None,
             zvdr_head: Some(CdfInt8::from(3968)),
             adr_head: Some(CdfInt8::from(404)),
-            eof: Some(CdfInt8::from(117050)),
+            eof: Some(CdfInt8::from(117_050)),
             num_rvars: CdfInt4::from(0),
             num_attributes: CdfInt4::from(11),
             max_rvar: CdfInt4::from(-1),
@@ -175,7 +192,7 @@ mod tests {
             num_zvars: CdfInt4::from(21),
             uir_head: CdfInt8::from(10964),
             rfu_c: CdfInt4::from(0),
-            date_last_leapsecond_update: CdfInt4::from(20170101),
+            date_last_leapsecond_update: CdfInt4::from(20_170_101),
             rfu_e: CdfInt4::from(-1),
             sizes_rvar: vec![].into_boxed_slice(),
         };
@@ -185,10 +202,10 @@ mod tests {
             rvdr_head: Some(CdfInt8::from(4405)),
             zvdr_head: None,
             adr_head: Some(CdfInt8::from(376)),
-            eof: Some(CdfInt8::from(8420394)),
+            eof: Some(CdfInt8::from(8_420_394)),
             num_rvars: CdfInt4::from(15),
             num_attributes: CdfInt4::from(27),
-            max_rvar: CdfInt4::from(134639),
+            max_rvar: CdfInt4::from(134_639),
             dim_rvar: CdfInt4::from(1),
             num_zvars: CdfInt4::from(0),
             uir_head: CdfInt8::from(0),

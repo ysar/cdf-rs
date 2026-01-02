@@ -1,6 +1,7 @@
-use crate::{error::DecodeError, types::CdfInt4};
+use crate::{error::CdfError, types::CdfInt4};
 
-/// Data Encodings used in CDF (from CDF specification Table 5.11).
+/// Data Encodings used in CDF (from CDF specification Table 5.11). Floating-point representations
+/// other than IEEE754 are not implemented and will raise an error.
 #[derive(Debug, PartialEq, Clone)]
 pub enum CdfEncoding {
     /// In case the encoding is unspecified.  This will raise an error.
@@ -49,7 +50,9 @@ pub enum CdfEncoding {
 
 impl CdfEncoding {
     /// Returns the endianness associated with this CDF data encoding.
-    pub fn get_endian(&self) -> Result<Endian, DecodeError> {
+    /// # Errors
+    /// Returns a [`CdfError`] if the CDF encoding is invalid.
+    pub fn get_endian(&self) -> Result<Endian, CdfError> {
         match &self {
             CdfEncoding::Network
             | CdfEncoding::Sun
@@ -66,20 +69,22 @@ impl CdfEncoding {
             | CdfEncoding::ArmLittle
             | CdfEncoding::Ia64VmsI => Ok(Endian::Little),
 
-            CdfEncoding::Unspecified => Err(DecodeError(
+            CdfEncoding::Unspecified => Err(CdfError::Decode(
                 "A valid CDF encoding is not read in or is unspecified.".to_string(),
             )),
 
-            _ => Err(DecodeError(format!("Encoding {self:?} not implemented."))),
+            _ => Err(CdfError::Decode(format!(
+                "Encoding {self:?} not implemented."
+            ))),
         }
     }
 }
 
 impl TryFrom<CdfInt4> for CdfEncoding {
-    type Error = DecodeError;
-    fn try_from(value: CdfInt4) -> Result<Self, DecodeError> {
-        let _value: i32 = value.into();
-        match _value {
+    type Error = CdfError;
+    fn try_from(value: CdfInt4) -> Result<Self, CdfError> {
+        let value: i32 = value.into();
+        match value {
             0 => Ok(CdfEncoding::Unspecified),
             1 => Ok(CdfEncoding::Network),
             2 => Ok(CdfEncoding::Sun),
@@ -100,26 +105,32 @@ impl TryFrom<CdfInt4> for CdfEncoding {
             19 => Ok(CdfEncoding::Ia64VmsI),
             20 => Ok(CdfEncoding::Ia64VmsD),
             21 => Ok(CdfEncoding::Ia64VmsG),
-            v => Err(DecodeError(format!("Invalid encoding integer - {v}."))),
+            v => Err(CdfError::Decode(format!("Invalid encoding integer - {v}."))),
         }
     }
 }
 
 /// Enum to handle different endianess.
 pub enum Endian {
+    /// Big-Endian
     Big,
+    /// Little-Endian
     Little,
 }
 
 /// Stores the version of the CDF in a simple implementation of semantic versioning.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CdfVersion {
+    /// Major version
     pub major: u16,
+    /// Minor version
     pub minor: u16,
+    /// Patch version
     pub patch: u16,
 }
 
 impl CdfVersion {
+    /// Create a new instance of this struct using user-defined values.
     pub fn new(major: u16, minor: u16, patch: u16) -> Self {
         CdfVersion {
             major,

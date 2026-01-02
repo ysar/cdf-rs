@@ -1,6 +1,6 @@
 //! Library for reading and writing to files stored in NASA's Common Data Format (CDF).
 
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 
 /// Module containing error definitions.
 pub mod error;

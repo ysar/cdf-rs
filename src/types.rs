@@ -2,7 +2,7 @@
 /// different sizes. This module defines these fundamental types (CdfXXXX) and
 /// there conversions from and into byte arrays and native Rust types.
 use crate::decode::{Decodable, Decoder};
-use crate::error::DecodeError;
+use crate::error::CdfError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::mem;
@@ -11,28 +11,28 @@ use std::ops::Deref;
 macro_rules! impl_cdf_type {
     ($cdf_type:ident, $rust_type:ty) => {
         #[derive(PartialEq, Clone)]
+        #[doc = concat!("CDF-consistent type that is a wrapper around [`", stringify!($rust_type), "`].")]
         pub struct $cdf_type($rust_type);
 
         impl $cdf_type {
+            /// Size of this type in bytes.
             pub const fn size() -> usize {
                 mem::size_of::<$rust_type>()
             }
 
-            pub fn from_ne_bytes(bytes: [u8; Self::size()]) -> Self {
-                Self(<$rust_type>::from_ne_bytes(bytes))
-            }
+            /// Create an instance from a byte array using big-endian endianness.
             pub fn from_be_bytes(bytes: [u8; Self::size()]) -> Self {
                 Self(<$rust_type>::from_be_bytes(bytes))
             }
+            /// Create an instance from a byte array using little-endian endianness.
             pub fn from_le_bytes(bytes: [u8; Self::size()]) -> Self {
                 Self(<$rust_type>::from_le_bytes(bytes))
             }
-            pub fn to_ne_bytes(self) -> [u8; Self::size()] {
-                <$rust_type>::to_ne_bytes(self.0)
-            }
+            /// Convert from this type to a byte array using big-endian endianness.
             pub fn to_be_bytes(self) -> [u8; Self::size()] {
                 <$rust_type>::to_be_bytes(self.0)
             }
+            /// Convert from this type to a byte array using little-endian endianness.
             pub fn to_le_bytes(self) -> [u8; Self::size()] {
                 <$rust_type>::to_le_bytes(self.0)
             }
@@ -94,39 +94,33 @@ impl_cdf_type!(CdfUchar, u8);
 // pub type CdfFloat = CdfReal4;
 // pub type CdfDouble = CdfReal8;
 
+#[doc = concat!("CDF-consistent type that is a wrapper around `([`CdfReal8`], [`CdfReal8`])`.")]
 pub struct CdfEpoch16(CdfReal8, CdfReal8);
 
 impl CdfEpoch16 {
+    /// Size of this type in bytes.
     pub const fn size() -> usize {
         16
     }
-    pub fn from_ne_bytes(bytes: [u8; 16]) -> Self {
-        Self(
-            CdfReal8::from_ne_bytes(bytes[0..8].try_into().unwrap()),
-            CdfReal8::from_ne_bytes(bytes[8..16].try_into().unwrap()),
-        )
-    }
+    /// Create an instance from a byte array using big-endian endianness.
     pub fn from_be_bytes(bytes: [u8; 16]) -> Self {
         Self(
             CdfReal8::from_be_bytes(bytes[0..8].try_into().unwrap()),
             CdfReal8::from_be_bytes(bytes[8..16].try_into().unwrap()),
         )
     }
+    /// Create an instance from a byte array using little-endian endianness.
     pub fn from_le_bytes(bytes: [u8; 16]) -> Self {
         Self(
             CdfReal8::from_le_bytes(bytes[0..8].try_into().unwrap()),
             CdfReal8::from_le_bytes(bytes[8..16].try_into().unwrap()),
         )
     }
-    #[rustfmt::skip]
-    pub fn to_ne_bytes(self) -> [u8; 16] {
-        let r1 = self.0.to_ne_bytes();
-        let r2 = self.1.to_ne_bytes();
-        [
-            r1[0], r1[1], r1[2], r1[3], r1[4], r1[5], r1[6], r1[7],
-            r2[0], r2[1], r2[2], r2[3], r2[4], r2[5], r2[6], r2[7],
-        ]
-    }
+
+    // CAUTION: It is unclear how (Real8, Real8) values are stored. Is the
+    // endianness only relevant within each field or on both fields as a whole?
+
+    /// Convert from this type to a byte array using big-endian endianness.
     #[rustfmt::skip]
     pub fn to_be_bytes(self) -> [u8; 16] {
         let r1 = self.0.to_be_bytes();
@@ -136,6 +130,7 @@ impl CdfEpoch16 {
             r2[0], r2[1], r2[2], r2[3], r2[4], r2[5], r2[6], r2[7],
         ]
     }
+    /// Convert from this type to a byte array using little-endian endianness.
     #[rustfmt::skip]
     pub fn to_le_bytes(self) -> [u8; 16] {
         let r1 = self.0.to_le_bytes();
@@ -162,7 +157,7 @@ macro_rules! impl_decodable {
             impl Decodable for $cdf_type {
                 type Value = Self;
 
-                fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+                fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
                 where
                     R: io::Read + io::Seek
                 {
@@ -176,7 +171,7 @@ macro_rules! impl_decodable {
                     Ok($cdf_type::from_be_bytes(buffer))
                 }
 
-                fn decode_le<R>(decoder: &mut Decoder<R>) -> Result<Self, DecodeError>
+                fn decode_le<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
                 where
                     R: io::Read + io::Seek
                 {
@@ -205,34 +200,48 @@ impl_decodable!(CdfEpoch, CdfEpoch16);
 // would have been to use a trait (say `CdfType`) and using dynamic dispatch, which may be less
 // performant. Even if I used Box<dyn>, it would introduce a layer of indirection. So, for now,
 // let's try this way.
-/// The enum wrapper the more primitive CDF types into one type for use with various records which
+/// The enum wraps the more primitive CDF types into one type for use with various records which
 /// contain a mixture of different primitive CDF types.
 #[repr(i32)]
 #[derive(Debug)]
 pub enum CdfType {
+    /// Wraps [`CdfInt1`].
     Int1(CdfInt1) = 1,
+    /// Wraps [`CdfInt2`].
     Int2(CdfInt2) = 2,
+    /// Wraps [`CdfInt4`].
     Int4(CdfInt4) = 4,
+    /// Wraps [`CdfInt8`].
     Int8(CdfInt8) = 8,
+    /// Wraps [`CdfUint1`].
     Uint1(CdfUint1) = 11,
+    /// Wraps [`CdfUint2`].
     Uint2(CdfUint2) = 12,
+    /// Wraps [`CdfUint4`].
     Uint4(CdfUint4) = 14,
+    /// Wraps [`CdfReal4`].
     Real4(CdfReal4) = 21,
+    /// Wraps [`CdfReal8`].
     Real8(CdfReal8) = 22,
+    /// Wraps [`CdfEpoch`].
     Epoch(CdfEpoch) = 31,
+    /// Wraps [`CdfEpoch16`].
     Epoch16(CdfEpoch16) = 32,
+    /// Wraps [`CdfTimeTt2000`].
     TimeTt2000(CdfTimeTt2000) = 33,
+    /// Wraps [`CdfByte`].
     Byte(CdfByte) = 41,
+    /// Wraps [`CdfChar`].
     Char(CdfChar) = 51,
+    /// Wraps [`CdfUchar`].
     Uchar(CdfUchar) = 52,
 }
 
 /// Decodes any CDF data type assuming Big-Endian encoding, given its numeric identifier, as defined
 /// in Table 5.9 in the CDF specification.
-pub fn decode_cdf_type_be<R>(
-    decoder: &mut Decoder<R>,
-    data_type: i32,
-) -> Result<CdfType, DecodeError>
+/// # Errors
+/// Returns a [`DecodeError`] if the decoding fails for any reason.
+pub fn decode_cdf_type_be<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, CdfError>
 where
     R: io::Read + io::Seek,
 {
@@ -254,7 +263,7 @@ where
         45 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
         51 => Ok(CdfType::Char(CdfChar::decode_be(decoder)?)),
         52 => Ok(CdfType::Uchar(CdfUchar::decode_be(decoder)?)),
-        e => Err(DecodeError(format!(
+        e => Err(CdfError::Decode(format!(
             "Invalid CDF data_type received - {}",
             e
         ))),
@@ -263,10 +272,9 @@ where
 
 /// Decodes any CDF data type assuming Little-Endian encoding, given its numeric identifier, as defined
 /// in Table 5.9 in the CDF specification.
-pub fn decode_cdf_type_le<R>(
-    decoder: &mut Decoder<R>,
-    data_type: i32,
-) -> Result<CdfType, DecodeError>
+/// # Errors
+/// Returns a [`DecodeError`] if the decoding fails for any reason.
+pub fn decode_cdf_type_le<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, CdfError>
 where
     R: io::Read + io::Seek,
 {
@@ -288,7 +296,7 @@ where
         45 => Ok(CdfType::Real8(CdfReal8::decode_le(decoder)?)),
         51 => Ok(CdfType::Char(CdfChar::decode_le(decoder)?)),
         52 => Ok(CdfType::Uchar(CdfUchar::decode_le(decoder)?)),
-        e => Err(DecodeError(format!(
+        e => Err(CdfError::Decode(format!(
             "Invalid CDF data_type received - {}",
             e
         ))),
