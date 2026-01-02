@@ -8,6 +8,7 @@ use crate::record::adr::AttributeDescriptorRecord;
 use crate::record::agredr::AttributeGREntryDescriptorRecord;
 use crate::record::azedr::AttributeZEntryDescriptorRecord;
 use crate::record::cdr::CdfDescriptorRecord;
+use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::types::CdfUint4;
 
@@ -18,8 +19,8 @@ pub struct Cdf {
     pub cdr: CdfDescriptorRecord,
     pub gdr: GlobalDescriptorRecord,
     pub adr_vec: Vec<AttributeDescriptorRecord>,
-    pub agredr_vec: Vec<AttributeGREntryDescriptorRecord>,
-    pub azedr_vec: Vec<AttributeZEntryDescriptorRecord>,
+    pub agredr_vec: Vec<Vec<AttributeGREntryDescriptorRecord>>,
+    pub azedr_vec: Vec<Vec<AttributeZEntryDescriptorRecord>>,
 }
 
 impl Decodable for Cdf {
@@ -63,63 +64,34 @@ impl Decodable for Cdf {
 
         // There MAY be attribute descriptor records present. Collect these into a vec of ADRs.
         // They are stored in the CDF in a linked-list with each record pointing to the next.
-        let mut adr_vec = vec![];
-        if let Some(adr_head) = &gdr.adr_head {
-            let mut adr_next = adr_head.clone();
-            loop {
-                _ = decoder.reader.seek(SeekFrom::Start(*adr_next as u64))?;
-                let adr = AttributeDescriptorRecord::decode_be(decoder)?;
-                if let Some(_next) = adr.adr_next.clone() {
-                    adr_vec.push(adr);
-                    adr_next = _next;
-                } else {
-                    adr_vec.push(adr);
-                    break;
-                }
-            }
-        }
+        let adr_vec = if let Some(adr_head) = &gdr.adr_head {
+            get_record_vec::<R, AttributeDescriptorRecord>(decoder, adr_head.clone())?
+        } else {
+            vec![]
+        };
 
         // There may be attribute entry descriptor records present in the form of a linked-list.
         // There are two types - the AGREDR and AZEDR.  Both types have separate linked-lists.
-        // Each ADR may contain several linked-lists corresponding to
-        // attribute entries for that attribute.  Phew.  For now, let's flatten them all into one
-        // Vec and later deal with which AEDR corresponds to which attribute (this info is stored
-        // also in each AEDR)
+        // Each ADR may contain several linked-lists corresponding to each attribute, hence the
+        // Vec<Vec<_>>.
         let mut agredr_vec = vec![];
         for adr in adr_vec.iter() {
-            if let Some(agredr_head) = &adr.agredr_head {
-                let mut agredr_next = agredr_head.clone();
-                loop {
-                    _ = decoder.reader.seek(SeekFrom::Start(*agredr_next as u64))?;
-                    let agredr = AttributeGREntryDescriptorRecord::decode_be(decoder)?;
-                    if let Some(_next) = agredr.agredr_next.clone() {
-                        agredr_vec.push(agredr);
-                        agredr_next = _next;
-                    } else {
-                        agredr_vec.push(agredr);
-                        break;
-                    }
-                }
-            }
+            let agredr_vec_this = if let Some(agredr_head) = &adr.agredr_head {
+                get_record_vec::<R, AttributeGREntryDescriptorRecord>(decoder, agredr_head.clone())?
+            } else {
+                vec![]
+            };
+            agredr_vec.push(agredr_vec_this);
         }
 
-        // looks absolutely ugly but don't know what we could do.  Maybe move this to a separate function.
         let mut azedr_vec = vec![];
         for adr in adr_vec.iter() {
-            if let Some(azedr_head) = &adr.azedr_head {
-                let mut azedr_next = azedr_head.clone();
-                loop {
-                    _ = decoder.reader.seek(SeekFrom::Start(*azedr_next as u64))?;
-                    let azedr = AttributeZEntryDescriptorRecord::decode_be(decoder)?;
-                    if let Some(_next) = azedr.azedr_next.clone() {
-                        azedr_vec.push(azedr);
-                        azedr_next = _next;
-                    } else {
-                        azedr_vec.push(azedr);
-                        break;
-                    }
-                }
-            }
+            let azedr_vec_this = if let Some(azedr_head) = &adr.azedr_head {
+                get_record_vec::<R, AttributeZEntryDescriptorRecord>(decoder, azedr_head.clone())?
+            } else {
+                vec![]
+            };
+            azedr_vec.push(azedr_vec_this);
         }
 
         Ok(Cdf {

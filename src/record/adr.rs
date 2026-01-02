@@ -1,6 +1,7 @@
 use crate::{
     decode::{Decodable, Decoder, _decode_version3_int4_int8},
     error::DecodeError,
+    record::collection::RecordList,
     types::{CdfInt4, CdfInt8},
 };
 use std::io;
@@ -125,6 +126,12 @@ impl Decodable for AttributeDescriptorRecord {
         unreachable!(
             "Little-endian decoding is not supported for records, only for values within records."
         )
+    }
+}
+
+impl RecordList for AttributeDescriptorRecord {
+    fn next_record(&self) -> Option<CdfInt8> {
+        self.adr_next.clone()
     }
 }
 

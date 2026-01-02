@@ -1,5 +1,6 @@
 use crate::decode::{Decodable, Decoder, _decode_version3_int4_int8};
 use crate::error::DecodeError;
+use crate::record::collection::RecordList;
 use crate::repr::Endian;
 use crate::types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfType};
 use std::io;
@@ -123,5 +124,11 @@ impl Decodable for AttributeZEntryDescriptorRecord {
         unreachable!(
             "Little-endian decoding is not supported for records, only for values within records."
         )
+    }
+}
+
+impl RecordList for AttributeZEntryDescriptorRecord {
+    fn next_record(&self) -> Option<CdfInt8> {
+        self.azedr_next.clone()
     }
 }
