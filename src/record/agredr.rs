@@ -132,3 +132,42 @@ impl RecordList for AttributeGREntryDescriptorRecord {
         self.agredr_next.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use crate::cdf;
+    use crate::error::CdfError;
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::path::PathBuf;
+
+    use super::*;
+
+    #[test]
+    fn test_agredr_examples() -> Result<(), CdfError> {
+        let file1 = "test_alltypes.cdf";
+        let file2 = "ulysses.cdf";
+
+        _ = _agredr_example(file1)?;
+        _ = _agredr_example(file2)?;
+        Ok(())
+    }
+
+    fn _agredr_example(filename: &str) -> Result<(), CdfError> {
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+            .iter()
+            .collect();
+
+        let f = File::open(path_test_file)?;
+        let reader = BufReader::new(f);
+        let mut decoder = Decoder::new(reader)?;
+        let cdf = cdf::Cdf::decode_be(&mut decoder)?;
+        let adr_vec = &cdf.adr_vec;
+        let agredr_vec_all = &cdf.agredr_vec;
+        for (adr, agredr_vec) in adr_vec.iter().zip(agredr_vec_all) {
+            assert_eq!(*adr.num_gr_entries as usize, agredr_vec.len());
+        }
+        Ok(())
+    }
+}

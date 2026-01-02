@@ -151,12 +151,12 @@ mod tests {
         let file1 = "test_alltypes.cdf";
         let file2 = "ulysses.cdf";
 
-        _ = _gdr_example(file1, 11)?;
-        _ = _gdr_example(file2, 27)?;
+        _ = _adr_example(file1, 11)?;
+        _ = _adr_example(file2, 27)?;
         Ok(())
     }
 
-    fn _gdr_example(filename: &str, adr_length: usize) -> Result<(), CdfError> {
+    fn _adr_example(filename: &str, adr_length: usize) -> Result<(), CdfError> {
         let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
             .iter()
             .collect();
