@@ -165,10 +165,10 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        let adr = &cdf.adr_vec;
+        let adr_vec = &cdf.adr_vec;
         // There are many ADR records in each file and I don't know how to validate each individually
-        // so for now this hack of checking ADR lengths.
-        assert_eq!(adr.len(), adr_length);
+        // so for now this hack of checking the length of the ADR vector.
+        assert_eq!(adr_vec.len(), adr_length);
         Ok(())
     }
 }
