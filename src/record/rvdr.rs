@@ -2,7 +2,7 @@ use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
     record::collection::RecordList,
-    types::{CdfInt4, CdfInt8},
+    types::{CdfInt4, CdfInt8, CdfString},
 };
 use std::io;
 
@@ -53,7 +53,7 @@ pub struct RVariableDescriptorRecord {
     /// Blocking factor (?)
     pub blocking_factor: CdfInt4,
     /// Name of this variable
-    pub name: String,
+    pub name: CdfString,
     /// Dimension variances for this variable.
     pub dim_variances: Vec<CdfInt4>,
     /// Pad value of this variable.
@@ -152,10 +152,7 @@ impl Decodable for RVariableDescriptorRecord {
 
         let blocking_factor = CdfInt4::decode_be(decoder)?;
 
-        let mut name = vec![0u8; 256];
-        _ = decoder.reader.read_exact(&mut name);
-        let name: String = String::from_utf8(name.into_iter().take_while(|c| *c != 0).collect())
-            .map_err(|e| CdfError::Decode(format!("Error decoding variable name. - {e}")))?;
+        let name = CdfString::decode_string_from_numbytes(decoder, 256)?;
 
         let r_num_dims = *decoder.context.get_num_dimension_rvariable()?;
         let mut dim_variances = Vec::with_capacity(usize::try_from(r_num_dims)?);

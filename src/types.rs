@@ -210,24 +210,22 @@ impl CdfChar {
 
     /// Convert from this type to a byte array using big-endian endianness.
     pub fn to_be_bytes(self) -> [u8; 1] {
-        u8::to_be_bytes(self.0 as u8) // We are sure that this is ASCII.
+        u8::to_be_bytes(self.0 as u8) // We are sure that CdfChar is ASCII.
     }
     /// Convert from this type to a byte array using little-endian endianness.
     pub fn to_le_bytes(self) -> [u8; 1] {
-        u8::to_le_bytes(self.0 as u8) // We are sure that this is ASCII.
+        u8::to_le_bytes(self.0 as u8) // We are sure that CdfChar is ASCII.
     }
 }
 
-// For CdfChar only, we will use try_from because the character may not be ASCII.
+// For CdfChar only, we will use try_from because `char` may not be ASCII.
 impl TryFrom<char> for CdfChar {
     type Error = CdfError;
     fn try_from(value: char) -> Result<Self, Self::Error> {
-        let _ = u8::try_from(value).map_err(|_| {
-            CdfError::Decode(format!(
-                "Unable to convert unicode char {value} into extended ASCII."
-            ))
-        });
-        Ok(CdfChar(value))
+        let repr = u8::try_from(value).map_err(|_| {
+            CdfError::Decode(format!("Unable to convert unicode {value} into ASCII."))
+        })?;
+        Ok(CdfChar(repr as char))
     }
 }
 
@@ -309,6 +307,23 @@ impl CdfString {
     /// legacy CDF files that store strings as a collection of [`CdfUchar`] or [`CdfChar`].
     pub fn from_slice_chars(chars: &[CdfChar]) -> Self {
         CdfString(chars.iter().map(|c| c.0).collect())
+    }
+
+    /// Decode a collection of bytes of length `num_bytes` into a [`CdfString`]
+    pub fn decode_string_from_numbytes<R>(
+        decoder: &mut Decoder<R>,
+        num_bytes: usize,
+    ) -> Result<Self, CdfError>
+    where
+        R: io::Read + io::Seek,
+    {
+        let mut buffer = vec![0u8; num_bytes];
+        _ = decoder.reader.read_exact(&mut buffer);
+        Ok(
+            String::from_utf8(buffer.into_iter().take_while(|c| *c != 0).collect())
+                .map_err(|e| CdfError::Decode(format!("Error decoding string - {e}")))?
+                .into(),
+        )
     }
 }
 
@@ -466,29 +481,35 @@ mod tests {
     test_type!(CdfReal4, f32, -7.0);
     test_type!(CdfReal8, f64, -7.0);
 
-    macro_rules! test_type_chars {
-        ($cdf_type:ty, $rust_type:ty, $val:literal) => {
-            paste! {
-                #[test]
-                fn [< test_convert_ $cdf_type:lower _ $rust_type >]() {
-                    let x: $rust_type = $val;
-                    let y: $cdf_type = x.try_into().unwrap();
-                    assert_eq!(x, y.into());
-                }
+    #[test]
+    fn test_convert_cdfchar_char() {
+        let x: char = 'a'; // ASCII
+        let y: CdfChar = x.try_into().unwrap();
+        assert_eq!(x, y.into());
 
-                #[test]
-                fn [< test_decode_ $cdf_type:lower _ $rust_type >]() -> Result<(), CdfError> {
-                    let x: $rust_type = $val;
-                    let y = (x as u8).to_be_bytes();
-                    let mut decoder = Decoder::new(io::Cursor::new(y.as_slice()))?;
-                    assert_eq!($cdf_type(x), $cdf_type::decode_be(&mut decoder)?);
+        let x: char = 'ñ'; // Extended ASCII
+        let y: CdfChar = x.try_into().unwrap();
+        assert_eq!(x, y.into());
 
-                    Ok(())
-                }
-            }
-        };
+        let x: char = 'Ā'; // Valid Unicode but not ASCII.
+        let y: Result<CdfChar, CdfError> = x.try_into();
+        assert!(y.is_err());
     }
-    test_type_chars!(CdfChar, char, 'a');
+
+    #[test]
+    fn test_decode_cdfchar_char() -> Result<(), CdfError> {
+        let x: char = 'a';
+        let y = (x as u8).to_be_bytes();
+        let mut decoder = Decoder::new(io::Cursor::new(y.as_slice()))?;
+        assert_eq!(CdfChar(x), CdfChar::decode_be(&mut decoder)?);
+
+        let x: char = 'ñ';
+        let y = (x as u8).to_be_bytes();
+        let mut decoder = Decoder::new(io::Cursor::new(y.as_slice()))?;
+        assert_eq!(CdfChar(x), CdfChar::decode_be(&mut decoder)?);
+
+        Ok(())
+    }
 
     // test_float!(CdfEpoch, f64);
 }

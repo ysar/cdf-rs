@@ -2,7 +2,7 @@ use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
     repr::{CdfEncoding, CdfVersion},
-    types::{CdfInt4, CdfInt8},
+    types::{CdfInt4, CdfInt8, CdfString},
 };
 use std::io;
 
@@ -31,7 +31,7 @@ pub struct CdfDescriptorRecord {
     /// A value reserved for future use.
     pub rfu_e: CdfInt4,
     /// The copyright string.
-    pub copyright: String,
+    pub copyright: CdfString,
 }
 
 impl Decodable for CdfDescriptorRecord {
@@ -95,15 +95,11 @@ impl Decodable for CdfDescriptorRecord {
 
         let identifier = CdfInt4::decode_be(decoder)?;
         let rfu_e = CdfInt4::decode_be(decoder)?;
-        let mut copyright = if cdf_version < CdfVersion::new(2, 5, 0) {
-            vec![0u8; 1945]
+        let copyright = if cdf_version < CdfVersion::new(2, 5, 0) {
+            CdfString::decode_string_from_numbytes(decoder, 1945)?
         } else {
-            vec![0u8; 256]
+            CdfString::decode_string_from_numbytes(decoder, 256)?
         };
-        _ = decoder.reader.read_exact(&mut copyright);
-        let copyright: String =
-            String::from_utf8(copyright.into_iter().take_while(|c| *c != 0).collect())
-                .map_err(|e| CdfError::Decode(format!("Error decoding copyright notice. - {e}")))?;
 
         Ok(CdfDescriptorRecord {
             record_size,

@@ -2,7 +2,7 @@ use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
     record::collection::RecordList,
-    types::{CdfInt4, CdfInt8},
+    types::{CdfInt4, CdfInt8, CdfString},
 };
 use std::io;
 
@@ -36,7 +36,7 @@ pub struct AttributeDescriptorRecord {
     /// A value reserved for future use.
     pub rfu_e: CdfInt4,
     /// Name of this attribute.
-    pub name: String,
+    pub name: CdfString,
 }
 
 impl Decodable for AttributeDescriptorRecord {
@@ -108,14 +108,11 @@ impl Decodable for AttributeDescriptorRecord {
             )));
         }
 
-        let mut name = if cdf_version.major < 3 {
-            vec![0u8; 64]
+        let name = if cdf_version.major < 3 {
+            CdfString::decode_string_from_numbytes(decoder, 64)?
         } else {
-            vec![0u8; 256]
+            CdfString::decode_string_from_numbytes(decoder, 256)?
         };
-        _ = decoder.reader.read_exact(&mut name);
-        let name: String = String::from_utf8(name.into_iter().take_while(|c| *c != 0).collect())
-            .map_err(|e| CdfError::Decode(format!("Error decoding attribute name. - {e}")))?;
 
         Ok(AttributeDescriptorRecord {
             record_size,
