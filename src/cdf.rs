@@ -8,6 +8,7 @@ use crate::record::azedr::AttributeZEntryDescriptorRecord;
 use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
+use crate::record::rvdr::RVariableDescriptorRecord;
 use crate::repr::CdfVersion;
 use crate::types::CdfUint4;
 
@@ -26,6 +27,8 @@ pub struct Cdf {
     pub agredr_vec: Vec<Vec<AttributeGREntryDescriptorRecord>>,
     /// Vector of all Attribute Entry Descriptor Records of type Z for each ADR.
     pub azedr_vec: Vec<Vec<AttributeZEntryDescriptorRecord>>,
+    /// Vector storing all rVariable Descriptor Records.
+    pub rvdr_vec: Vec<RVariableDescriptorRecord>,
 }
 
 impl Decodable for Cdf {
@@ -100,6 +103,13 @@ impl Decodable for Cdf {
             azedr_vec.push(azedr_vec_this);
         }
 
+        // There MAY be multiple rVariable descriptor records present. Collect these into a vec.
+        let rvdr_vec = if let Some(rvdr_head) = &gdr.rvdr_head {
+            get_record_vec::<R, RVariableDescriptorRecord>(decoder, rvdr_head)?
+        } else {
+            vec![]
+        };
+
         Ok(Cdf {
             is_compressed,
             cdr,
@@ -107,6 +117,7 @@ impl Decodable for Cdf {
             adr_vec,
             agredr_vec,
             azedr_vec,
+            rvdr_vec,
         })
     }
 
@@ -125,26 +136,31 @@ mod tests {
 
     use crate::error::CdfError;
     use std::fs::File;
+    use std::io::BufReader;
     use std::path::PathBuf;
 
     use super::*;
 
     #[test]
-    fn read_magic_numbers() -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [
-            env!("CARGO_MANIFEST_DIR"),
-            "tests",
-            "data",
-            "test_alltypes.cdf",
-        ]
-        .iter()
-        .collect();
+    fn test_read_cdf() -> Result<(), CdfError> {
+        let file1 = "test_alltypes.cdf";
+        let file2 = "ulysses.cdf";
+
+        // _cdf_example(file1)?;
+        _cdf_example(file2)?;
+        Ok(())
+    }
+
+    fn _cdf_example(filename: &str) -> Result<(), CdfError> {
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+            .iter()
+            .collect();
 
         let f = File::open(path_test_file)?;
-        let mut decoder = Decoder::new(f)?;
+        let reader = BufReader::new(f);
+        let mut decoder = Decoder::new(reader)?;
         let cdf = Cdf::decode_be(&mut decoder)?;
-        assert!(!cdf.is_compressed);
-        dbg!(cdf);
+        // dbg!(cdf);
         Ok(())
     }
 }

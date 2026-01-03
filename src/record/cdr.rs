@@ -59,12 +59,12 @@ impl Decodable for CdfDescriptorRecord {
         // Set the encoding of the decoder using the value read from the CDR.
         decoder.context.set_encoding(encoding.clone());
 
-        let flags: i32 = CdfInt4::decode_be(decoder)?.into();
+        let flags = CdfInt4::decode_be(decoder)?;
         let flags = CdrFlags {
-            row_major: flags & 1i32 == 1,
-            single_file: flags & 2i32 == 2,
-            has_checksum: flags & 4i32 == 4,
-            md5_checksum: flags & 8i32 == 8,
+            row_major: *flags & 1i32 == 1,
+            single_file: *flags & 2i32 == 2,
+            has_checksum: *flags & 4i32 == 4,
+            md5_checksum: *flags & 8i32 == 8,
         };
 
         let rfu_a = CdfInt4::decode_be(decoder)?;
@@ -90,8 +90,8 @@ impl Decodable for CdfDescriptorRecord {
             u16::try_from(increment)?,
         );
 
-        // Save the CDF version inside the decoder.
-        // decoder.set_version(cdf_version.clone());
+        // Save the CDF version inside the decoder context for later use.
+        decoder.context.set_version(cdf_version.clone());
 
         let identifier = CdfInt4::decode_be(decoder)?;
         let rfu_e = CdfInt4::decode_be(decoder)?;
@@ -133,9 +133,13 @@ impl Decodable for CdfDescriptorRecord {
 /// Flags pertaining to this CDF file.
 #[derive(Debug, PartialEq)]
 pub struct CdrFlags {
+    /// Whether this is row_major (true) or column-major (false)
     pub row_major: bool,
+    /// Whether this is a single file CDF, as opposed to multi-file CDFs.
     pub single_file: bool,
+    /// Whether this CDF file has a checksum.
     pub has_checksum: bool,
+    /// Whether the checksum is an MD5 checksum.
     pub md5_checksum: bool,
 }
 
@@ -167,6 +171,7 @@ mod tests {
                 has_checksum: true,
                 md5_checksum: true,
             },
+            143,
         )?;
 
         _cdf_descriptor_record_example(
@@ -181,6 +186,7 @@ mod tests {
                 has_checksum: false,
                 md5_checksum: false,
             },
+            240,
         )?;
         Ok(())
     }
@@ -192,6 +198,7 @@ mod tests {
         version: CdfVersion,
         encoding: CdfEncoding,
         flags: CdrFlags,
+        len_copyright: usize,
     ) -> Result<(), CdfError> {
         let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
             .iter()
@@ -212,7 +219,7 @@ mod tests {
         assert_eq!(*cdr.rfu_b, 0);
         assert_eq!(*cdr.identifier, -1);
         assert_eq!(*cdr.rfu_e, -1);
-        // assert!(cdr.copyright.len() == 256);
+        assert_eq!(cdr.copyright.len(), len_copyright);
         Ok(())
     }
 }

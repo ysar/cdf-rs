@@ -37,7 +37,10 @@ macro_rules! impl_cdf_type {
                 <$rust_type>::to_le_bytes(self.0)
             }
         }
-
+    };
+}
+macro_rules! impl_cdf_rust_from {
+    ($cdf_type:ident, $rust_type:ty) => {
         impl From<$rust_type> for $cdf_type {
             fn from(value: $rust_type) -> Self {
                 $cdf_type(value)
@@ -49,7 +52,11 @@ macro_rules! impl_cdf_type {
                 value.0
             }
         }
+    };
+}
 
+macro_rules! impl_cdf_rust_ptr {
+    ($cdf_type:ident, $rust_type:ty) => {
         impl AsRef<$rust_type> for $cdf_type {
             fn as_ref(&self) -> &$rust_type {
                 &self.0
@@ -58,12 +65,15 @@ macro_rules! impl_cdf_type {
 
         impl Deref for $cdf_type {
             type Target = $rust_type;
-
             fn deref(&self) -> &Self::Target {
                 &self.0
             }
         }
+    };
+}
 
+macro_rules! impl_cdf_display_debug {
+    ($cdf_type:ident) => {
         impl Display for $cdf_type {
             fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
                 write!(f, "{}", self.0)
@@ -72,6 +82,38 @@ macro_rules! impl_cdf_type {
         impl Debug for $cdf_type {
             fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
                 write!(f, "{}", self.0)
+            }
+        }
+    };
+}
+
+// Each CdfType is encoded/decoded in little or big-endian format depending on the type of
+// CdfEncoding that is used.
+macro_rules! impl_decodable {
+    ($cdf_type:ident) => {
+        impl Decodable for $cdf_type {
+            type Value = Self;
+
+            fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
+            where
+                R: io::Read + io::Seek,
+            {
+                let mut buffer = [0u8; <$cdf_type>::size()];
+
+                decoder.reader.read_exact(&mut buffer[..])?;
+
+                Ok($cdf_type::from_be_bytes(buffer))
+            }
+
+            fn decode_le<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
+            where
+                R: io::Read + io::Seek,
+            {
+                let mut buffer = [0u8; <$cdf_type>::size()];
+
+                decoder.reader.read_exact(&mut buffer[..])?;
+
+                Ok($cdf_type::from_le_bytes(buffer))
             }
         }
     };
@@ -89,10 +131,119 @@ impl_cdf_type!(CdfReal8, f64);
 impl_cdf_type!(CdfEpoch, f64);
 impl_cdf_type!(CdfTimeTt2000, i64);
 impl_cdf_type!(CdfByte, i8);
-impl_cdf_type!(CdfChar, i8); // Would be good to store chars here instead of ints.
-impl_cdf_type!(CdfUchar, u8);
-// pub type CdfFloat = CdfReal4;
-// pub type CdfDouble = CdfReal8;
+
+impl_cdf_rust_from!(CdfInt1, i8);
+impl_cdf_rust_from!(CdfInt2, i16);
+impl_cdf_rust_from!(CdfInt4, i32);
+impl_cdf_rust_from!(CdfInt8, i64);
+impl_cdf_rust_from!(CdfUint1, u8);
+impl_cdf_rust_from!(CdfUint2, u16);
+impl_cdf_rust_from!(CdfUint4, u32);
+impl_cdf_rust_from!(CdfReal4, f32);
+impl_cdf_rust_from!(CdfReal8, f64);
+impl_cdf_rust_from!(CdfEpoch, f64);
+impl_cdf_rust_from!(CdfTimeTt2000, i64);
+impl_cdf_rust_from!(CdfByte, i8);
+
+impl_cdf_rust_ptr!(CdfInt1, i8);
+impl_cdf_rust_ptr!(CdfInt2, i16);
+impl_cdf_rust_ptr!(CdfInt4, i32);
+impl_cdf_rust_ptr!(CdfInt8, i64);
+impl_cdf_rust_ptr!(CdfUint1, u8);
+impl_cdf_rust_ptr!(CdfUint2, u16);
+impl_cdf_rust_ptr!(CdfUint4, u32);
+impl_cdf_rust_ptr!(CdfReal4, f32);
+impl_cdf_rust_ptr!(CdfReal8, f64);
+impl_cdf_rust_ptr!(CdfEpoch, f64);
+impl_cdf_rust_ptr!(CdfTimeTt2000, i64);
+impl_cdf_rust_ptr!(CdfByte, i8);
+
+impl_cdf_display_debug!(CdfInt1);
+impl_cdf_display_debug!(CdfInt2);
+impl_cdf_display_debug!(CdfInt4);
+impl_cdf_display_debug!(CdfInt8);
+impl_cdf_display_debug!(CdfUint1);
+impl_cdf_display_debug!(CdfUint2);
+impl_cdf_display_debug!(CdfUint4);
+impl_cdf_display_debug!(CdfReal4);
+impl_cdf_display_debug!(CdfReal8);
+impl_cdf_display_debug!(CdfEpoch);
+impl_cdf_display_debug!(CdfTimeTt2000);
+impl_cdf_display_debug!(CdfByte);
+
+impl_decodable!(CdfInt1);
+impl_decodable!(CdfInt2);
+impl_decodable!(CdfInt4);
+impl_decodable!(CdfInt8);
+impl_decodable!(CdfUint1);
+impl_decodable!(CdfUint2);
+impl_decodable!(CdfUint4);
+impl_decodable!(CdfReal4);
+impl_decodable!(CdfReal8);
+impl_decodable!(CdfEpoch);
+impl_decodable!(CdfTimeTt2000);
+impl_decodable!(CdfByte);
+
+/// CDF-consistent type that is a wrapper around [`char`] with checks to ensure that it is ASCII.
+/// This the unsigned version with valid values of 0-127 in ASCII and 128-255 in extended ASCII.
+/// It is not recommended to use this type for strings stored in the CDF file anymore, since
+/// v3.8.1 allows for UTF-8 encoding.
+/// This type is equivalent to [`CdfUchar`].
+#[derive(PartialEq, Clone)]
+pub struct CdfChar(char);
+
+impl CdfChar {
+    /// Size of this type in bytes. A CdfChar contains ASCII and is 1 byte long.
+    pub const fn size() -> usize {
+        1
+    }
+
+    /// Create an instance from a byte array using big-endian endianness.
+    pub fn from_be_bytes(bytes: [u8; 1]) -> Self {
+        Self(char::from(u8::from_be_bytes(bytes)))
+    }
+
+    /// Create an instance from a byte array using little-endian endianness.
+    pub fn from_le_bytes(bytes: [u8; 1]) -> Self {
+        Self(char::from(u8::from_le_bytes(bytes)))
+    }
+
+    /// Convert from this type to a byte array using big-endian endianness.
+    pub fn to_be_bytes(self) -> [u8; 1] {
+        u8::to_be_bytes(self.0 as u8) // We are sure that this is ASCII.
+    }
+    /// Convert from this type to a byte array using little-endian endianness.
+    pub fn to_le_bytes(self) -> [u8; 1] {
+        u8::to_le_bytes(self.0 as u8) // We are sure that this is ASCII.
+    }
+}
+
+// For CdfChar only, we will use try_from because the character may not be ASCII.
+impl TryFrom<char> for CdfChar {
+    type Error = CdfError;
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        let _ = u8::try_from(value).map_err(|_| {
+            CdfError::Decode(format!(
+                "Unable to convert unicode char {value} into extended ASCII."
+            ))
+        });
+        Ok(CdfChar(value))
+    }
+}
+
+impl From<CdfChar> for char {
+    fn from(value: CdfChar) -> char {
+        value.0
+    }
+}
+
+impl_cdf_rust_ptr!(CdfChar, char);
+impl_cdf_display_debug!(CdfChar);
+impl_decodable!(CdfChar);
+
+/// Alias for [`CdfUchar`].  Using either of these types for creating new CDF files is not
+/// recommended and the new approach using [`CdfString`] is preferred due to UTF-8 support.
+pub type CdfUchar = CdfChar;
 
 #[doc = concat!("CDF-consistent type that is a wrapper around `([`CdfReal8`], [`CdfReal8`])`.")]
 pub struct CdfEpoch16(CdfReal8, CdfReal8);
@@ -147,53 +298,23 @@ impl Debug for CdfEpoch16 {
         write!(f, "({}, {})", self.0, self.1)
     }
 }
+impl_decodable!(CdfEpoch16);
 
-// Each CdfType is encoded/decoded in little or big-endian format depending on the type of
-// CdfEncoding that is used.
+/// CDF-consistent type that is a wrapper around [`String`]. This is not defined in the CDF
+/// specification but is useful for string operations.
+pub struct CdfString(String);
 
-macro_rules! impl_decodable {
-    ($($cdf_type:ident), *) => {
-        $(
-            impl Decodable for $cdf_type {
-                type Value = Self;
-
-                fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
-                where
-                    R: io::Read + io::Seek
-                {
-                    let mut buffer = [0u8; <$cdf_type>::size()];
-
-                    decoder
-                        .reader
-                        .read_exact(&mut buffer[..])?;
-                        // .map_err(|err| DecodeError(format!("{err}")))?;
-
-                    Ok($cdf_type::from_be_bytes(buffer))
-                }
-
-                fn decode_le<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
-                where
-                    R: io::Read + io::Seek
-                {
-                    let mut buffer = [0u8; <$cdf_type>::size()];
-
-                    decoder
-                        .reader
-                        .read_exact(&mut buffer[..])?;
-                        // .map_err(|err| DecodeError(format!("{err}")))?;
-
-                    Ok($cdf_type::from_le_bytes(buffer))
-                }
-            }
-        )*
+impl CdfString {
+    /// Create a CDF-compatible string using a slice of CdfChars. This method is provided to read
+    /// legacy CDF files that store strings as a collection of [`CdfUchar`] or [`CdfChar`].
+    pub fn from_slice_chars(chars: &[CdfChar]) -> Self {
+        CdfString(chars.iter().map(|c| c.0).collect())
     }
 }
 
-impl_decodable!(CdfUint1, CdfUint2, CdfUint4);
-impl_decodable!(CdfInt1, CdfInt2, CdfInt4, CdfInt8);
-impl_decodable!(CdfTimeTt2000, CdfByte, CdfChar, CdfUchar);
-impl_decodable!(CdfReal4, CdfReal8);
-impl_decodable!(CdfEpoch, CdfEpoch16);
+impl_cdf_rust_from!(CdfString, String);
+impl_cdf_rust_ptr!(CdfString, String);
+impl_cdf_display_debug!(CdfString);
 
 // This enum stores the various allowed CDF types as defined in the specification.  The double
 // indirection is ugly but it is necessary for generalizing various CDF records.  The alternative
@@ -338,13 +459,36 @@ mod tests {
     test_type!(CdfInt4, i32, -7);
     test_type!(CdfInt8, i64, -7);
     test_type!(CdfByte, i8, -7);
-    test_type!(CdfChar, i8, -7);
     test_type!(CdfTimeTt2000, i64, -7);
     test_type!(CdfUint1, u8, 7);
     test_type!(CdfUint2, u16, 7);
     test_type!(CdfUint4, u32, 7);
-    test_type!(CdfUchar, u8, 7);
     test_type!(CdfReal4, f32, -7.0);
     test_type!(CdfReal8, f64, -7.0);
+
+    macro_rules! test_type_chars {
+        ($cdf_type:ty, $rust_type:ty, $val:literal) => {
+            paste! {
+                #[test]
+                fn [< test_convert_ $cdf_type:lower _ $rust_type >]() {
+                    let x: $rust_type = $val;
+                    let y: $cdf_type = x.try_into().unwrap();
+                    assert_eq!(x, y.into());
+                }
+
+                #[test]
+                fn [< test_decode_ $cdf_type:lower _ $rust_type >]() -> Result<(), CdfError> {
+                    let x: $rust_type = $val;
+                    let y = (x as u8).to_be_bytes();
+                    let mut decoder = Decoder::new(io::Cursor::new(y.as_slice()))?;
+                    assert_eq!($cdf_type(x), $cdf_type::decode_be(&mut decoder)?);
+
+                    Ok(())
+                }
+            }
+        };
+    }
+    test_type_chars!(CdfChar, char, 'a');
+
     // test_float!(CdfEpoch, f64);
 }

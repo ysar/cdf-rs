@@ -60,6 +60,8 @@ pub struct DecodeContext {
     /// CDF version.  This is necessary to include in the decoder since different versions have
     /// different formats.
     version: Option<CdfVersion>,
+    /// Number of dimensions of rVariables. This is used by the RVDR.
+    r_num_dims: Option<CdfInt4>,
 }
 
 impl DecodeContext {
@@ -68,6 +70,7 @@ impl DecodeContext {
         Self {
             encoding: None,
             version: None,
+            r_num_dims: None,
         }
     }
 
@@ -96,6 +99,18 @@ impl DecodeContext {
     pub fn get_encoding(&self) -> Result<CdfEncoding, CdfError> {
         self.encoding.clone().ok_or(CdfError::Decode(
             "No CDF encoding stored in the decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the dimension for rVariables within this CDF file.
+    pub fn set_num_dimension_rvariable(&mut self, num_dim: CdfInt4) {
+        self.r_num_dims = Some(num_dim);
+    }
+
+    /// Sets the dimension for rVariables within this CDF file.
+    pub fn get_num_dimension_rvariable(&mut self) -> Result<CdfInt4, CdfError> {
+        self.r_num_dims.clone().ok_or(CdfError::Decode(
+            "No rVariable dimension length stored in decoding context.".to_string(),
         ))
     }
 }

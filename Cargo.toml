@@ -1,5 +1,5 @@
 [package]
-name = "cdf_rs"
+name = "cdf"
 version = "0.1.0"
 edition = "2021"
 

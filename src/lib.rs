@@ -1,5 +1,4 @@
-//! Library for reading and writing to files stored in NASA's Common Data Format (CDF).
-
+#![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
 /// Module containing error definitions.

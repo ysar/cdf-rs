@@ -28,8 +28,8 @@ pub struct GlobalDescriptorRecord {
     pub num_attributes: CdfInt4,
     /// Maximum R variable.
     pub max_rvar: CdfInt4,
-    /// Dimensions for R variables (Note: all R variables have the same dimension.)
-    pub dim_rvar: CdfInt4,
+    /// Number of dimensions for R variables (Note: all R variables have the same dimension.)
+    pub r_num_dims: CdfInt4,
     /// Number of Z variables.
     pub num_zvars: CdfInt4,
     /// The file offset for the Unused Internal Record.
@@ -106,7 +106,12 @@ impl Decodable for GlobalDescriptorRecord {
         let num_rvars = CdfInt4::decode_be(decoder)?;
         let num_attributes = CdfInt4::decode_be(decoder)?;
         let max_rvar = CdfInt4::decode_be(decoder)?;
-        let dim_rvar = CdfInt4::decode_be(decoder)?;
+
+        let r_num_dims = CdfInt4::decode_be(decoder)?;
+        decoder
+            .context
+            .set_num_dimension_rvariable(r_num_dims.clone());
+
         let num_zvars = CdfInt4::decode_be(decoder)?;
         let uir_head = decode_version3_int4_int8(decoder)?;
 
@@ -128,8 +133,9 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let mut sizes_rvar = vec![CdfInt4::from(0); usize::try_from(*dim_rvar)?].into_boxed_slice();
-        for i in 0..usize::try_from(*dim_rvar)? {
+        let mut sizes_rvar =
+            vec![CdfInt4::from(0); usize::try_from(*r_num_dims)?].into_boxed_slice();
+        for i in 0..usize::try_from(*r_num_dims)? {
             // If there are rVariables present, read in their dimensions.
             sizes_rvar[i] = CdfInt4::decode_be(decoder)?;
         }
@@ -144,7 +150,7 @@ impl Decodable for GlobalDescriptorRecord {
             num_rvars,
             num_attributes,
             max_rvar,
-            dim_rvar,
+            r_num_dims,
             num_zvars,
             uir_head,
             rfu_c,
@@ -190,7 +196,7 @@ mod tests {
             num_rvars: CdfInt4::from(0),
             num_attributes: CdfInt4::from(11),
             max_rvar: CdfInt4::from(-1),
-            dim_rvar: CdfInt4::from(0),
+            r_num_dims: CdfInt4::from(0),
             num_zvars: CdfInt4::from(21),
             uir_head: CdfInt8::from(10964),
             rfu_c: CdfInt4::from(0),
@@ -208,7 +214,7 @@ mod tests {
             num_rvars: CdfInt4::from(15),
             num_attributes: CdfInt4::from(27),
             max_rvar: CdfInt4::from(134_639),
-            dim_rvar: CdfInt4::from(1),
+            r_num_dims: CdfInt4::from(1),
             num_zvars: CdfInt4::from(0),
             uir_head: CdfInt8::from(0),
             rfu_c: CdfInt4::from(0),
@@ -241,7 +247,7 @@ mod tests {
         assert_eq!(gdr.num_rvars, exp.num_rvars);
         assert_eq!(gdr.num_attributes, exp.num_attributes);
         assert_eq!(gdr.max_rvar, exp.max_rvar);
-        assert_eq!(gdr.dim_rvar, exp.dim_rvar);
+        assert_eq!(gdr.r_num_dims, exp.r_num_dims);
         assert_eq!(gdr.num_zvars, exp.num_zvars);
         assert_eq!(gdr.uir_head, exp.uir_head);
         assert_eq!(gdr.rfu_c, exp.rfu_c);
