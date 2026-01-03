@@ -46,6 +46,8 @@ impl Decodable for AttributeDescriptorRecord {
     where
         R: io::Read + io::Seek,
     {
+        let cdf_version = decoder.context.get_version()?;
+
         let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 4 {
@@ -106,7 +108,7 @@ impl Decodable for AttributeDescriptorRecord {
             )));
         }
 
-        let mut name = if decoder.version.major < 3 {
+        let mut name = if cdf_version.major < 3 {
             vec![0u8; 64]
         } else {
             vec![0u8; 256]
@@ -165,8 +167,8 @@ mod tests {
         let file1 = "test_alltypes.cdf";
         let file2 = "ulysses.cdf";
 
-        _ = _adr_example(file1, 11)?;
-        _ = _adr_example(file2, 27)?;
+        _adr_example(file1, 11)?;
+        _adr_example(file2, 27)?;
         Ok(())
     }
 

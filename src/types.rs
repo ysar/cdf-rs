@@ -240,7 +240,7 @@ pub enum CdfType {
 /// Decodes any CDF data type assuming Big-Endian encoding, given its numeric identifier, as defined
 /// in Table 5.9 in the CDF specification.
 /// # Errors
-/// Returns a [`DecodeError`] if the decoding fails for any reason.
+/// Returns a [`CdfError::Decode`] if the decoding fails for any reason.
 pub fn decode_cdf_type_be<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, CdfError>
 where
     R: io::Read + io::Seek,

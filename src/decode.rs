@@ -33,12 +33,8 @@ where
 {
     /// A reader is some object that implements [`io::Read`] and [`io::Seek`].
     pub reader: R,
-    /// The "encoding" of the values in the CDF. This has to be read in or specified for every
-    /// CDF file and is contained in the CDR.
-    pub encoding: CdfEncoding,
-    /// CDF version.  This  is necessary to include in the decoder since different versions have
-    /// different formats.
-    pub version: CdfVersion,
+    /// Context keeps track of values that are needed by other records for decoding.
+    pub context: DecodeContext,
 }
 
 impl<R> Decoder<R>
@@ -51,14 +47,56 @@ where
     pub fn new(reader: R) -> Result<Self, CdfError> {
         Ok(Decoder {
             reader,
-            encoding: CdfEncoding::Unspecified,
-            version: CdfVersion::new(0, 0, 0),
+            context: DecodeContext::empty(),
         })
     }
+}
 
-    /// Sets the version of the CDF file that this decoder is currently decoding.
+/// Stores various contextual values read in the CDF that other records depend on for their decoding.
+pub struct DecodeContext {
+    /// The "encoding" of the values in the CDF. This has to be read in or specified for every
+    /// CDF file and is contained in the CDR.
+    encoding: Option<CdfEncoding>,
+    /// CDF version.  This is necessary to include in the decoder since different versions have
+    /// different formats.
+    version: Option<CdfVersion>,
+}
+
+impl DecodeContext {
+    /// Create an empty context with nothing specified.
+    pub fn empty() -> Self {
+        Self {
+            encoding: None,
+            version: None,
+        }
+    }
+
+    /// Sets the CDF version for this context.
     pub fn set_version(&mut self, version: CdfVersion) {
-        self.version = version;
+        self.version = Some(version);
+    }
+
+    /// Get the CDF version for this context.
+    /// # Errors
+    /// Will raise a [`CdfError`] if the version is not specified yet.
+    pub fn get_version(&self) -> Result<CdfVersion, CdfError> {
+        self.version.clone().ok_or(CdfError::Decode(
+            "No CDF version stored in the decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the encoding for data within this CDF file.
+    pub fn set_encoding(&mut self, encoding: CdfEncoding) {
+        self.encoding = Some(encoding);
+    }
+
+    /// Gets the encoding for data within this CDF file.
+    /// # Errors
+    /// Will raise a [`CdfError`] if the encoding is not yet specified.
+    pub fn get_encoding(&self) -> Result<CdfEncoding, CdfError> {
+        self.encoding.clone().ok_or(CdfError::Decode(
+            "No CDF encoding stored in the decoding context.".to_string(),
+        ))
     }
 }
 
@@ -71,7 +109,7 @@ pub fn decode_version3_int4_int8<R>(decoder: &mut Decoder<R>) -> Result<CdfInt8,
 where
     R: io::Read + io::Seek,
 {
-    if decoder.version.major >= 3 {
+    if decoder.context.get_version()?.major >= 3 {
         CdfInt8::decode_be(decoder)
     } else {
         let s: i32 = CdfInt4::decode_be(decoder)?.into();

@@ -57,7 +57,7 @@ impl Decodable for CdfDescriptorRecord {
         let encoding: CdfEncoding = CdfInt4::decode_be(decoder)?.try_into()?;
 
         // Set the encoding of the decoder using the value read from the CDR.
-        decoder.encoding = encoding.clone();
+        decoder.context.set_encoding(encoding.clone());
 
         let flags: i32 = CdfInt4::decode_be(decoder)?.into();
         let flags = CdrFlags {
@@ -91,7 +91,7 @@ impl Decodable for CdfDescriptorRecord {
         );
 
         // Save the CDF version inside the decoder.
-        decoder.set_version(cdf_version.clone());
+        // decoder.set_version(cdf_version.clone());
 
         let identifier = CdfInt4::decode_be(decoder)?;
         let rfu_e = CdfInt4::decode_be(decoder)?;
@@ -155,7 +155,7 @@ mod tests {
         let file1 = "test_alltypes.cdf";
         let file2 = "ulysses.cdf";
 
-        _ = _cdf_descriptor_record_example(
+        _cdf_descriptor_record_example(
             file1,
             312,
             320,
@@ -169,7 +169,7 @@ mod tests {
             },
         )?;
 
-        _ = _cdf_descriptor_record_example(
+        _cdf_descriptor_record_example(
             file2,
             304,
             312,

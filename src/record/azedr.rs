@@ -100,7 +100,7 @@ impl Decodable for AttributeZEntryDescriptorRecord {
 
         // Read in the values of this attribute based on the encoding specified in the CDR.
         let mut value: Vec<CdfType> = Vec::with_capacity(usize::try_from(*num_elements)?);
-        let endianness = decoder.encoding.get_endian()?;
+        let endianness = decoder.context.get_encoding()?.get_endian()?;
 
         match endianness {
             Endian::Big => {
@@ -164,8 +164,8 @@ mod tests {
         let file1 = "test_alltypes.cdf";
         let file2 = "ulysses.cdf";
 
-        _ = _azedr_example(file1)?;
-        _ = _azedr_example(file2)?;
+        _azedr_example(file1)?;
+        _azedr_example(file2)?;
         Ok(())
     }
 

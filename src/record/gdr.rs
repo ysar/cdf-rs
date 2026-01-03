@@ -51,6 +51,8 @@ impl Decodable for GlobalDescriptorRecord {
     where
         R: io::Read + io::Seek,
     {
+        let cdf_version = decoder.context.get_version()?;
+
         let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
         if *record_type != 2 {
@@ -75,7 +77,7 @@ impl Decodable for GlobalDescriptorRecord {
             //     None
             // } else {
             let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 || decoder.version < CdfVersion::new(2, 2, 0) {
+            if *v == 0 || cdf_version < CdfVersion::new(2, 2, 0) {
                 None
             } else {
                 Some(v)
@@ -94,7 +96,7 @@ impl Decodable for GlobalDescriptorRecord {
         // eof is undefined for CDF < v2.1
         let eof = {
             let eof = decode_version3_int4_int8(decoder)?;
-            if decoder.version < CdfVersion::new(2, 1, 0) {
+            if cdf_version < CdfVersion::new(2, 1, 0) {
                 None
             } else {
                 Some(eof)
@@ -214,8 +216,8 @@ mod tests {
             rfu_e: CdfInt4::from(-1),
             sizes_rvar: vec![CdfInt4::from(3)].into_boxed_slice(),
         };
-        _ = _gdr_example(file1, expected1)?;
-        _ = _gdr_example(file2, expected2)?;
+        _gdr_example(file1, expected1)?;
+        _gdr_example(file2, expected2)?;
         Ok(())
     }
 

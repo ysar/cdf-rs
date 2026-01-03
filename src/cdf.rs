@@ -41,14 +41,15 @@ impl Decodable for Cdf {
         let m2 = CdfUint4::decode_be(decoder)?;
 
         // This is mostly a hack to get a hint of the CDF version. We read in the actual version
-        // properly in the CDR.
+        // properly in the CDR. We need to know before reading the CDR if the CDF is >= v3.0 or
+        // not.
         let version = match m1.into() {
             0xcdf30001 => CdfVersion::new(3, 0, 0),
             0xcdf26002 => CdfVersion::new(2, 6, 0),
             0x0000ffff => CdfVersion::new(2, 0, 0),
             v => return Err(CdfError::Decode(format!("Invalid magic number - {v}"))),
         };
-        decoder.set_version(version);
+        decoder.context.set_version(version);
 
         let is_compressed: bool = match m2.into() {
             0x0000ffffu32 => false,
