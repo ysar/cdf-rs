@@ -81,33 +81,12 @@ impl Decodable for ZVariableDescriptorRecord {
             )));
         }
 
-        let zvdr_next = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let zvdr_next = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let data_type = CdfInt4::decode_be(decoder)?;
         let max_record = CdfInt4::decode_be(decoder)?;
-        let vxr_head = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
-        let vxr_tail = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let vxr_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
+        let vxr_tail = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let flags = CdfInt4::decode_be(decoder)?;
         let flags = ZVariableFlags {
@@ -143,17 +122,10 @@ impl Decodable for ZVariableDescriptorRecord {
         let num_elements = CdfInt4::decode_be(decoder)?;
         let num = CdfInt4::decode_be(decoder)?;
 
-        let cpr_spr_offset = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == -1 {
-                // According to spec, this check should be with 0xFFFF_FFFF_FFFF_FFFF. But Rust
-                // throws a compilation error because this does not fit inside a Int8. So we are
-                // checking with -1 instead, which should lead to the same behavior.
-                None
-            } else {
-                Some(v)
-            }
-        };
+        // According to spec, this check should be with 0xFFFF_FFFF_FFFF_FFFF. But Rust
+        // throws a compilation error because this does not fit inside a Int8. So we are
+        // checking with -1 instead, which should lead to the same behavior.
+        let cpr_spr_offset = decode_version3_int4_int8(decoder).map(|v| (*v != -1).then_some(v))?;
 
         let blocking_factor = CdfInt4::decode_be(decoder)?;
 
@@ -165,9 +137,11 @@ impl Decodable for ZVariableDescriptorRecord {
             size_z_dims.push(CdfInt4::decode_be(decoder)?)
         }
 
-        let mut dim_variances = Vec::with_capacity(usize::try_from(*num_z_dims)?);
-        for _ in 0..*num_z_dims {
-            dim_variances.push(CdfInt4::decode_be(decoder).map(|x| *x == -1)?)
+        let mut dim_variances: Vec<bool> = vec![false; usize::try_from(*num_z_dims)?];
+        for d in dim_variances.iter_mut() {
+            if *CdfInt4::decode_be(decoder)? == -1 {
+                *d = true;
+            }
         }
 
         let pad_value = if flags.has_padding {

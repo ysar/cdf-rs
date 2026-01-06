@@ -133,7 +133,6 @@ impl Decodable for RVariableDescriptorRecord {
             if *CdfInt4::decode_be(decoder)? == -1 {
                 *d = true;
             }
-            // dim_variances.push(CdfInt4::decode_be(decoder).map(|x| *x == -1)?)
         }
 
         let pad_value = if flags.has_padding {
