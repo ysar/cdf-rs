@@ -9,6 +9,7 @@ use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::record::rvdr::RVariableDescriptorRecord;
+use crate::record::vxr::VariableIndexRecord;
 use crate::record::zvdr::ZVariableDescriptorRecord;
 use crate::repr::CdfVersion;
 use crate::types::CdfUint4;
@@ -32,6 +33,10 @@ pub struct Cdf {
     pub rvdr_vec: Vec<RVariableDescriptorRecord>,
     /// Vector storing all zVariable Descriptor Records.
     pub zvdr_vec: Vec<ZVariableDescriptorRecord>,
+    /// Vector storing all Variable Index Records for rVariables.
+    pub rvxr_vec: Vec<Vec<VariableIndexRecord>>,
+    /// Vector storing all Variable Index Records for zVariables.
+    pub zvxr_vec: Vec<Vec<VariableIndexRecord>>,
 }
 
 impl Decodable for Cdf {
@@ -88,12 +93,12 @@ impl Decodable for Cdf {
         // Vec<Vec<_>>.
         let mut agredr_vec = vec![];
         for adr in &adr_vec {
-            let agredr_vec_this = if let Some(agredr_head) = &adr.agredr_head {
+            let agredr_this = if let Some(agredr_head) = &adr.agredr_head {
                 get_record_vec::<R, AttributeGREntryDescriptorRecord>(decoder, agredr_head)?
             } else {
                 vec![]
             };
-            agredr_vec.push(agredr_vec_this);
+            agredr_vec.push(agredr_this);
         }
 
         let mut azedr_vec = vec![];
@@ -113,12 +118,32 @@ impl Decodable for Cdf {
             vec![]
         };
 
-        // There MAY be multiple rVariable descriptor records present. Collect these into a vec.
+        // There MAY be multiple zVariable descriptor records present. Collect these into a vec.
         let zvdr_vec = if let Some(zvdr_head) = &gdr.zvdr_head {
             get_record_vec::<R, ZVariableDescriptorRecord>(decoder, zvdr_head)?
         } else {
             vec![]
         };
+
+        let mut rvxr_vec = vec![];
+        for vdr in &rvdr_vec {
+            let vxr_this = if let Some(vxr_head) = &vdr.vxr_head {
+                get_record_vec::<R, VariableIndexRecord>(decoder, vxr_head)?
+            } else {
+                vec![]
+            };
+            rvxr_vec.push(vxr_this);
+        }
+
+        let mut zvxr_vec = vec![];
+        for vdr in &zvdr_vec {
+            let vxr_this = if let Some(vxr_head) = &vdr.vxr_head {
+                get_record_vec::<R, VariableIndexRecord>(decoder, vxr_head)?
+            } else {
+                vec![]
+            };
+            zvxr_vec.push(vxr_this);
+        }
 
         Ok(Cdf {
             is_compressed,
@@ -129,6 +154,8 @@ impl Decodable for Cdf {
             azedr_vec,
             rvdr_vec,
             zvdr_vec,
+            rvxr_vec,
+            zvxr_vec,
         })
     }
 
