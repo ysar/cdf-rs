@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::decode::{decode_version3_int4_int8, Decodable, Decoder};
 use crate::error::CdfError;
 use crate::record::collection::RecordList;
@@ -7,6 +10,7 @@ use std::io;
 
 /// Struct to store contents of an Attribute Entry Descriptor Record that stores information on
 /// zVariable attributes.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct AttributeZEntryDescriptorRecord {
     /// The size of this record in bytes.
@@ -163,7 +167,7 @@ mod tests {
     }
 
     fn _azedr_example(filename: &str) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

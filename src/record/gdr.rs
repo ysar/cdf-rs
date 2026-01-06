@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
@@ -8,6 +11,7 @@ use std::io;
 
 /// The Global Descriptor Record is present in all uncompressed CDF files after the CDF Descriptor
 /// Record, at the file offset noted in the CDR `gdr_offset` attribute.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct GlobalDescriptorRecord {
     /// The size of this record in bytes.
@@ -196,7 +200,7 @@ mod tests {
     }
 
     fn _gdr_example(filename: &str, exp: GlobalDescriptorRecord) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

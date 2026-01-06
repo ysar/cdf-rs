@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
@@ -8,6 +11,7 @@ use crate::{
 /// Stores the contents of a Variable Index Record.
 /// Variable Index Records are used in single-file CDFs to store the file offsets of any
 /// lower level of VXRs, Variable Values Records, or Compressed Variable Value Records.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct VariableIndexRecord {
     /// Size of this record in bytes.
@@ -125,7 +129,7 @@ mod tests {
     }
 
     fn _vxr_example(filename: &str) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

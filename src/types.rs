@@ -3,6 +3,10 @@
 /// there conversions from and into byte arrays and native Rust types.
 use crate::decode::{Decodable, Decoder};
 use crate::error::CdfError;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io;
 use std::mem;
@@ -10,6 +14,7 @@ use std::ops::Deref;
 
 macro_rules! impl_cdf_type {
     ($cdf_type:ident, $rust_type:ty) => {
+        #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
         #[derive(PartialEq, Clone)]
         #[doc = concat!("CDF-consistent type that is a wrapper around [`", stringify!($rust_type), "`].")]
         pub struct $cdf_type($rust_type);
@@ -185,6 +190,7 @@ impl_decodable!(CdfByte);
 /// It is not recommended to use this type for strings stored in the CDF file anymore, since
 /// v3.8.1 allows for UTF-8 encoding.
 /// This type is equivalent to [`CdfUchar`].
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Clone)]
 pub struct CdfChar(char);
 
@@ -240,6 +246,8 @@ impl_decodable!(CdfChar);
 pub type CdfUchar = CdfChar;
 
 #[doc = concat!("CDF-consistent type that is a wrapper around `([`CdfReal8`], [`CdfReal8`])`.")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub struct CdfEpoch16(CdfReal8, CdfReal8);
 
 impl CdfEpoch16 {
@@ -296,6 +304,8 @@ impl_decodable!(CdfEpoch16);
 
 /// CDF-consistent type that is a wrapper around [`String`]. This is not defined in the CDF
 /// specification but is useful for string operations.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub struct CdfString(String);
 
 impl CdfString {
@@ -335,7 +345,8 @@ impl_cdf_display_debug!(CdfString);
 /// The enum wraps the more primitive CDF types into one type for use with various records which
 /// contain a mixture of different primitive CDF types.
 #[repr(i32)]
-#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub enum CdfType {
     /// Wraps [`CdfInt1`].
     Int1(CdfInt1) = 1,

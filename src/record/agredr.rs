@@ -1,12 +1,18 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::decode::{decode_version3_int4_int8, Decodable, Decoder};
 use crate::error::CdfError;
 use crate::record::collection::RecordList;
 use crate::repr::Endian;
-use crate::types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfType};
+use crate::types::{
+    decode_cdf_type_be, decode_cdf_type_le, CdfChar, CdfInt4, CdfInt8, CdfString, CdfType,
+};
 use std::io;
 
 /// Struct to store contents of an Attribute Entry Descriptor Record that stores information on
 /// global attributes and rVariable attributes.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct AttributeGREntryDescriptorRecord {
     /// The size of this record in bytes.
@@ -108,6 +114,22 @@ impl Decodable for AttributeGREntryDescriptorRecord {
             }
         }
 
+        // If the type for value is Vec<CdfType::char>, it is better to convert to a Vec<CdfString>
+        // Ideally we would want something like impl Iterator here instead ? Maybe?
+        let value = if let CdfType::Char(_) = value[0].clone() {
+            let chars: Vec<CdfChar> = value
+                .into_iter()
+                .flat_map(|v| match v {
+                    CdfType::Char(c) => Some(c),
+                    _ => None,
+                })
+                .collect();
+
+            vec![CdfType::String(CdfString::from_slice_chars(&chars))]
+        } else {
+            value
+        };
+
         Ok(AttributeGREntryDescriptorRecord {
             record_size,
             record_type,
@@ -163,7 +185,7 @@ mod tests {
     }
 
     fn _agredr_example(filename: &str) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

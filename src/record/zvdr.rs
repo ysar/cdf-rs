@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
@@ -8,6 +11,7 @@ use crate::{
 use std::io;
 
 /// Various options for rVariables.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct ZVariableFlags {
     /// Whether this rVariable has variance.
@@ -19,6 +23,7 @@ pub struct ZVariableFlags {
 }
 
 /// Describes one zVariable stored in the CDF file.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct ZVariableDescriptorRecord {
     /// Size of this record in bytes.
@@ -229,7 +234,7 @@ mod tests {
     }
 
     fn _zvdr_example(filename: &str, zvdr_len: usize) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

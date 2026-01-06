@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
@@ -6,8 +9,23 @@ use crate::{
 };
 use std::io;
 
+/// Flags pertaining to this CDF file.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq)]
+pub struct CdrFlags {
+    /// Whether this is row_major (true) or column-major (false)
+    pub row_major: bool,
+    /// Whether this is a single file CDF, as opposed to multi-file CDFs.
+    pub single_file: bool,
+    /// Whether this CDF file has a checksum.
+    pub has_checksum: bool,
+    /// Whether the checksum is an MD5 checksum.
+    pub md5_checksum: bool,
+}
+
 /// The CDF Descriptor Record is present in all CDF files at a file offset of 8-bytes and contains
 /// general information about the CDF.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct CdfDescriptorRecord {
     /// The size of this record in bytes.
@@ -126,19 +144,6 @@ impl Decodable for CdfDescriptorRecord {
     }
 }
 
-/// Flags pertaining to this CDF file.
-#[derive(Debug, PartialEq)]
-pub struct CdrFlags {
-    /// Whether this is row_major (true) or column-major (false)
-    pub row_major: bool,
-    /// Whether this is a single file CDF, as opposed to multi-file CDFs.
-    pub single_file: bool,
-    /// Whether this CDF file has a checksum.
-    pub has_checksum: bool,
-    /// Whether the checksum is an MD5 checksum.
-    pub md5_checksum: bool,
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -196,7 +201,7 @@ mod tests {
         flags: CdrFlags,
         len_copyright: usize,
     ) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

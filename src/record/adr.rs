@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
@@ -7,6 +10,7 @@ use crate::{
 use std::io;
 
 /// The Attribute Descriptor Record contains information on each attribute in the CDF.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct AttributeDescriptorRecord {
     /// The size in bytes of this record.
@@ -148,7 +152,7 @@ mod tests {
     }
 
     fn _adr_example(filename: &str, adr_length: usize) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 

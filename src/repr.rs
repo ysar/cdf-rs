@@ -1,7 +1,11 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{error::CdfError, types::CdfInt4};
 
 /// Data Encodings used in CDF (from CDF specification Table 5.11). Floating-point representations
 /// other than IEEE754 are not implemented and will raise an error.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum CdfEncoding {
     /// In case the encoding is unspecified.  This will raise an error.
@@ -119,6 +123,7 @@ pub enum Endian {
 }
 
 /// Stores the version of the CDF in a simple implementation of semantic versioning.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CdfVersion {
     /// Major version

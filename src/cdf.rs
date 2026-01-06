@@ -1,4 +1,9 @@
-use std::io::{self, SeekFrom};
+use std::fs::File;
+use std::io::{self, BufReader, SeekFrom};
+use std::path::PathBuf;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::decode::{Decodable, Decoder};
 use crate::error::CdfError;
@@ -15,6 +20,8 @@ use crate::repr::CdfVersion;
 use crate::types::CdfUint4;
 
 /// General struct to hold the contents of the CDF file.
+// #[cfg(feature = "serde")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct Cdf {
     /// Whether this CDF file is compressed.
@@ -39,6 +46,15 @@ pub struct Cdf {
     pub zvxr_vec: Vec<Vec<VariableIndexRecord>>,
 }
 
+impl Cdf {
+    /// Decode or deserialize a CDF file.
+    pub fn read_cdf_file(file_path: PathBuf) -> Result<Self, CdfError> {
+        let f = File::open(file_path)?;
+        let reader = BufReader::new(f);
+        let mut decoder = Decoder::new(reader)?;
+        Cdf::decode_be(&mut decoder)
+    }
+}
 impl Decodable for Cdf {
     type Value = Self;
 
@@ -190,7 +206,7 @@ mod tests {
     }
 
     fn _cdf_example(filename: &str) -> Result<(), CdfError> {
-        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
+        let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
             .iter()
             .collect();
 
