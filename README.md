@@ -16,10 +16,9 @@ for the CDF format include,
 - [`CDFpp`](https://github.com/SciQLop/CDFpp) (C++).
 
 `cdf-rs` is not zero-copy. At the primitive level, there is a call to `from_le_bytes` or 
-`from_be_bytes` on a byte-slice buffer.  While it seems like it could be theoretically possible to 
-implement decoding (deserializing) in a zero-copy manner, a CDF file allows for data and attributes 
-to have different endianness, even within one file. This makes memory-mapping a more challenging 
-task than what I can currently achieve.
+`from_be_bytes` on a byte-slice buffer.  Maybe deserializing/decoding can be done in a zero-copy 
+manner.  A CDF file allows for data and attributes to have different endianness, even within one 
+file.  So, it might be complicated and this is not a priority at the moment.
 
 > [!NOTE]
 > This library is a work in progress. Currently I am focusing on decoding (parsing) CDFs, since 

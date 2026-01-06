@@ -17,7 +17,7 @@ pub trait RecordList {
 /// calls this must be [`Decodable`] and [`RecordList`].
 ///
 /// # Errors
-/// Will result a [`DecodeError`] if the decoding fails for any reason.
+/// Will return a [`CdfError::Decode`] if the decoding fails for any reason.
 pub fn get_record_vec<R, T>(decoder: &mut Decoder<R>, head: &CdfInt8) -> Result<Vec<T>, CdfError>
 where
     R: io::Read + io::Seek,

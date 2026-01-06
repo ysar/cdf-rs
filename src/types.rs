@@ -99,9 +99,7 @@ macro_rules! impl_decodable {
                 R: io::Read + io::Seek,
             {
                 let mut buffer = [0u8; <$cdf_type>::size()];
-
                 decoder.reader.read_exact(&mut buffer[..])?;
-
                 Ok($cdf_type::from_be_bytes(buffer))
             }
 
@@ -110,9 +108,7 @@ macro_rules! impl_decodable {
                 R: io::Read + io::Seek,
             {
                 let mut buffer = [0u8; <$cdf_type>::size()];
-
                 decoder.reader.read_exact(&mut buffer[..])?;
-
                 Ok($cdf_type::from_le_bytes(buffer))
             }
         }
@@ -371,6 +367,8 @@ pub enum CdfType {
     Char(CdfChar) = 51,
     /// Wraps [`CdfUchar`].
     Uchar(CdfUchar) = 52,
+    /// Wraps [`CdfString`].  Not defined in the CDF specification.
+    String(CdfString) = 101,
 }
 
 /// Decodes any CDF data type assuming Big-Endian encoding, given its numeric identifier, as defined
@@ -409,7 +407,7 @@ where
 /// Decodes any CDF data type assuming Little-Endian encoding, given its numeric identifier, as defined
 /// in Table 5.9 in the CDF specification.
 /// # Errors
-/// Returns a [`DecodeError`] if the decoding fails for any reason.
+/// Returns a [`CdfError::Decode`] if the decoding fails for any reason.
 pub fn decode_cdf_type_le<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, CdfError>
 where
     R: io::Read + io::Seek,

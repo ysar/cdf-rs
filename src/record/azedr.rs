@@ -165,7 +165,7 @@ mod tests {
         let file2 = "ulysses.cdf";
 
         _azedr_example(file1)?;
-        // _azedr_example(file2)?;
+        _azedr_example(file2)?;
         Ok(())
     }
 

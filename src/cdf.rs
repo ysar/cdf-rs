@@ -9,6 +9,7 @@ use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::record::rvdr::RVariableDescriptorRecord;
+use crate::record::zvdr::ZVariableDescriptorRecord;
 use crate::repr::CdfVersion;
 use crate::types::CdfUint4;
 
@@ -29,6 +30,8 @@ pub struct Cdf {
     pub azedr_vec: Vec<Vec<AttributeZEntryDescriptorRecord>>,
     /// Vector storing all rVariable Descriptor Records.
     pub rvdr_vec: Vec<RVariableDescriptorRecord>,
+    /// Vector storing all zVariable Descriptor Records.
+    pub zvdr_vec: Vec<ZVariableDescriptorRecord>,
 }
 
 impl Decodable for Cdf {
@@ -110,6 +113,13 @@ impl Decodable for Cdf {
             vec![]
         };
 
+        // There MAY be multiple rVariable descriptor records present. Collect these into a vec.
+        let zvdr_vec = if let Some(zvdr_head) = &gdr.zvdr_head {
+            get_record_vec::<R, ZVariableDescriptorRecord>(decoder, zvdr_head)?
+        } else {
+            vec![]
+        };
+
         Ok(Cdf {
             is_compressed,
             cdr,
@@ -118,6 +128,7 @@ impl Decodable for Cdf {
             agredr_vec,
             azedr_vec,
             rvdr_vec,
+            zvdr_vec,
         })
     }
 
@@ -146,7 +157,7 @@ mod tests {
         let file1 = "test_alltypes.cdf";
         let file2 = "ulysses.cdf";
 
-        // _cdf_example(file1)?;
+        _cdf_example(file1)?;
         _cdf_example(file2)?;
         Ok(())
     }

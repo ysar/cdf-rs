@@ -2,7 +2,8 @@ use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
     record::collection::RecordList,
-    types::{CdfInt4, CdfInt8, CdfString},
+    repr::Endian,
+    types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfString, CdfType},
 };
 use std::io;
 
@@ -26,9 +27,9 @@ pub struct RVariableDescriptorRecord {
     pub record_type: CdfInt4,
     /// File offset pointing to the next RVDR.
     pub rvdr_next: Option<CdfInt8>,
-    /// Type of data stored in this R Variable.
+    /// Type of data stored in this rVariable.
     pub data_type: CdfInt4,
-    /// Maximum record number stored in this R variable.
+    /// Maximum record number stored in this rVariable.
     pub max_record: CdfInt4,
     /// File offset of the first Variable Index record.
     pub vxr_head: Option<CdfInt8>,
@@ -55,9 +56,9 @@ pub struct RVariableDescriptorRecord {
     /// Name of this variable
     pub name: CdfString,
     /// Dimension variances for this variable.
-    pub dim_variances: Vec<CdfInt4>,
+    pub dim_variances: Vec<bool>,
     /// Pad value of this variable.
-    pub pad_value: Vec<CdfInt4>,
+    pub pad_value: Vec<CdfType>,
 }
 
 impl Decodable for RVariableDescriptorRecord {
@@ -154,16 +155,33 @@ impl Decodable for RVariableDescriptorRecord {
 
         let name = CdfString::decode_string_from_numbytes(decoder, 256)?;
 
-        let r_num_dims = *decoder.context.get_num_dimension_rvariable()?;
-        let mut dim_variances = Vec::with_capacity(usize::try_from(r_num_dims)?);
-        for _ in 0..r_num_dims {
-            dim_variances.push(CdfInt4::decode_be(decoder)?)
+        let num_r_dims = *decoder.context.get_num_dimension_rvariable()?;
+        let mut dim_variances = Vec::with_capacity(usize::try_from(num_r_dims)?);
+        for _ in 0..num_r_dims {
+            dim_variances.push(CdfInt4::decode_be(decoder).map(|x| *x == -1)?)
         }
 
-        let pad_value = vec![];
-        if flags.has_padding {
-            todo!();
-        }
+        let pad_value = if flags.has_padding {
+            // Read in the values of this attribute based on the encoding specified in the CDR.
+            let mut value: Vec<CdfType> = Vec::with_capacity(usize::try_from(*num_elements)?);
+            let endianness = decoder.context.get_encoding()?.get_endian()?;
+
+            match endianness {
+                Endian::Big => {
+                    for _ in 0..*num_elements {
+                        value.push(decode_cdf_type_be(decoder, *data_type)?);
+                    }
+                }
+                Endian::Little => {
+                    for _ in 0..*num_elements {
+                        value.push(decode_cdf_type_le(decoder, *data_type)?);
+                    }
+                }
+            }
+            value
+        } else {
+            vec![]
+        };
 
         Ok(RVariableDescriptorRecord {
             record_size,
@@ -220,12 +238,12 @@ mod tests {
         let file1 = "test_alltypes.cdf";
         let file2 = "ulysses.cdf";
 
-        _rvdr_example(file1)?;
-        _rvdr_example(file2)?;
+        _rvdr_example(file1, 0)?;
+        _rvdr_example(file2, 15)?;
         Ok(())
     }
 
-    fn _rvdr_example(filename: &str) -> Result<(), CdfError> {
+    fn _rvdr_example(filename: &str, rvdr_len: usize) -> Result<(), CdfError> {
         let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "data", filename]
             .iter()
             .collect();
@@ -234,6 +252,11 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
+        assert_eq!(cdf.rvdr_vec.len(), rvdr_len);
+
+        // if !cdf.rvdr_vec.is_empty() {
+        //     dbg!(cdf.rvdr_vec);
+        // }
         Ok(())
     }
 }
