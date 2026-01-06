@@ -43,15 +43,7 @@ impl Decodable for VariableIndexRecord {
                 *record_type
             )));
         }
-
-        let vxr_next = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let vxr_next = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let num_entries = CdfInt4::decode_be(decoder)?;
         let num_used_entries = CdfInt4::decode_be(decoder)?;
@@ -142,7 +134,7 @@ mod tests {
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
         assert_eq!(cdf.rvxr_vec.len(), cdf.rvdr_vec.len());
-        assert_eq!(cdf.zvxr_vec.len(), cdf.zvxr_vec.len());
+        assert_eq!(cdf.zvxr_vec.len(), cdf.zvdr_vec.len());
 
         // if !cdf.rvxr_vec.is_empty() {
         //     dbg!(cdf.rvxr_vec);

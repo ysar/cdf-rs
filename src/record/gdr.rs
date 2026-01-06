@@ -41,7 +41,7 @@ pub struct GlobalDescriptorRecord {
     /// A value reserved for future use.
     pub rfu_e: CdfInt4,
     /// Sizes for R variables.
-    pub sizes_rvar: Box<[CdfInt4]>,
+    pub sizes_rvar: Vec<CdfInt4>,
 }
 
 impl Decodable for GlobalDescriptorRecord {
@@ -62,46 +62,15 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let rvdr_head = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let rvdr_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
+        let zvdr_head = decode_version3_int4_int8(decoder)
+            .map(|v| (*v != 0 && cdf_version >= CdfVersion::new(2, 2, 0)).then_some(v))?;
 
-        let zvdr_head = {
-            // zVDR were introduced in CDF v2.2 and are undefined for earlier versions.
-            // if decoder.version < Version::new(2, 2, 0) {
-            //     None
-            // } else {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 || cdf_version < CdfVersion::new(2, 2, 0) {
-                None
-            } else {
-                Some(v)
-            }
-        };
-
-        let adr_head = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let adr_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         // eof is undefined for CDF < v2.1
-        let eof = {
-            let eof = decode_version3_int4_int8(decoder)?;
-            if cdf_version < CdfVersion::new(2, 1, 0) {
-                None
-            } else {
-                Some(eof)
-            }
-        };
+        let eof = decode_version3_int4_int8(decoder)
+            .map(|eof| (cdf_version >= CdfVersion::new(2, 1, 0)).then_some(eof))?;
 
         let num_rvars = CdfInt4::decode_be(decoder)?;
         let num_attributes = CdfInt4::decode_be(decoder)?;
@@ -133,11 +102,10 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let mut sizes_rvar =
-            vec![CdfInt4::from(0); usize::try_from(*r_num_dims)?].into_boxed_slice();
-        for i in 0..usize::try_from(*r_num_dims)? {
+        let mut sizes_rvar = vec![CdfInt4::from(0); usize::try_from(*r_num_dims)?];
+        for s in sizes_rvar.iter_mut() {
             // If there are rVariables present, read in their dimensions.
-            sizes_rvar[i] = CdfInt4::decode_be(decoder)?;
+            *s = CdfInt4::decode_be(decoder)?;
         }
 
         Ok(Self {
@@ -202,7 +170,7 @@ mod tests {
             rfu_c: CdfInt4::from(0),
             date_last_leapsecond_update: CdfInt4::from(20_170_101),
             rfu_e: CdfInt4::from(-1),
-            sizes_rvar: vec![].into_boxed_slice(),
+            sizes_rvar: vec![],
         };
         let expected2 = GlobalDescriptorRecord {
             record_size: CdfInt8::from(64),
@@ -220,7 +188,7 @@ mod tests {
             rfu_c: CdfInt4::from(0),
             date_last_leapsecond_update: CdfInt4::from(-1),
             rfu_e: CdfInt4::from(-1),
-            sizes_rvar: vec![CdfInt4::from(3)].into_boxed_slice(),
+            sizes_rvar: vec![CdfInt4::from(3)],
         };
         _gdr_example(file1, expected1)?;
         _gdr_example(file2, expected2)?;

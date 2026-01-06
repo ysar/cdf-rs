@@ -57,23 +57,8 @@ impl Decodable for AttributeDescriptorRecord {
             )));
         }
 
-        let adr_next = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
-
-        let agredr_head = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let adr_next = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
+        let agredr_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let scope = CdfInt4::decode_be(decoder)?;
         let num = CdfInt4::decode_be(decoder)?;
@@ -88,14 +73,7 @@ impl Decodable for AttributeDescriptorRecord {
             )));
         }
 
-        let azedr_head = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let azedr_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let num_z_entries = CdfInt4::decode_be(decoder)?;
         let max_z_entry = CdfInt4::decode_be(decoder)?;

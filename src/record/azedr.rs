@@ -54,14 +54,7 @@ impl Decodable for AttributeZEntryDescriptorRecord {
             )));
         }
 
-        let azedr_next = {
-            let v = decode_version3_int4_int8(decoder)?;
-            if *v == 0 {
-                None
-            } else {
-                Some(v)
-            }
-        };
+        let azedr_next = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let attr_num = CdfInt4::decode_be(decoder)?;
         let data_type = CdfInt4::decode_be(decoder)?;
