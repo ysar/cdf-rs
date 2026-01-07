@@ -28,6 +28,9 @@ This reads in the entire content of the CDF file.
 ```rust,ignore
 let cdf = Cdf::read_cdf_file(PathBuf::from("examples/data/test_alltypes.cdf")).unwrap();
 ```
+## Dependencies
+By default `cdf-rs` has no dependencies yet. If you want `serde` support, you need to enable the 
+`serde` feature.
 
 ## The CDF data model and `serde` 
 
@@ -43,19 +46,18 @@ around native Rust types.  In addition, nearly all "CdfTypes" implement `serde::
 JSON file, or any other format that has `serde` support.
 
 ```text
-                         _____________
-                         | .CDF file |
-                         |___________|
-                               |
-_____________      ____________|________________      ____________________      _________________
-| User data | ---> | CDF data model (this lib) | ---> | serde data model | ---> | Other formats |
-|___________|      |___________________________|      |__________________|      |_______________|
+                     _____________
+                     | .cdf file |
+                     |___________|
+                           |
+_____________      ________|_________      ____________________      _________________
+| User data | ---> | CDF data model | ---> | serde data model | ---> | Other formats |
+|___________|      | (this lib)     |      |__________________|      |_______________|
+                   |________________|
 ```
 
-`serde` support within `cdf-rs` needs to be enabled by enabling the `serde` feature. 
-
-Then, for example, using `serde` to convert previously read CDF data into JSON is trivial using 
-`serde_json` -
+For example, after enable the `serde` feature, you can use an external crate like `serde_json` to 
+convert previously read CDF data into a JSON string.
 ```rust,ignore
 let cdf_as_json = serde_json::to_string(&cdf).unwrap();
 ```

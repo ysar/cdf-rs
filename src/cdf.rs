@@ -14,6 +14,7 @@ use crate::record::cdr::CdfDescriptorRecord;
 use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::record::rvdr::RVariableDescriptorRecord;
+use crate::record::uir::UnusedInternalRecord;
 use crate::record::vxr::VariableIndexRecord;
 use crate::record::zvdr::ZVariableDescriptorRecord;
 use crate::repr::CdfVersion;
@@ -44,6 +45,8 @@ pub struct Cdf {
     pub rvxr_vec: Vec<Vec<VariableIndexRecord>>,
     /// Vector storing all Variable Index Records for zVariables.
     pub zvxr_vec: Vec<Vec<VariableIndexRecord>>,
+    /// Vector storing all the Unused Internal Records,
+    pub uir_vec: Vec<UnusedInternalRecord>,
 }
 
 impl Cdf {
@@ -161,6 +164,13 @@ impl Decodable for Cdf {
             zvxr_vec.push(vxr_this);
         }
 
+        // Store the linked-list of unused records as a vec.
+        let uir_vec = if let Some(uir_head) = &gdr.uir_head {
+            get_record_vec::<R, UnusedInternalRecord>(decoder, uir_head)?
+        } else {
+            vec![]
+        };
+
         Ok(Cdf {
             is_compressed,
             cdr,
@@ -172,6 +182,7 @@ impl Decodable for Cdf {
             zvdr_vec,
             rvxr_vec,
             zvxr_vec,
+            uir_vec,
         })
     }
 

@@ -37,7 +37,7 @@ pub struct GlobalDescriptorRecord {
     /// Number of Z variables.
     pub num_zvars: CdfInt4,
     /// The file offset for the Unused Internal Record.
-    pub uir_head: CdfInt8,
+    pub uir_head: Option<CdfInt8>,
     /// A value reserved for future use.
     pub rfu_c: CdfInt4,
     /// Date of last leapsecond update.
@@ -86,7 +86,7 @@ impl Decodable for GlobalDescriptorRecord {
             .set_num_dimension_rvariable(r_num_dims.clone());
 
         let num_zvars = CdfInt4::decode_be(decoder)?;
-        let uir_head = decode_version3_int4_int8(decoder)?;
+        let uir_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
 
         let rfu_c = CdfInt4::decode_be(decoder)?;
         if *rfu_c != 0 {
@@ -170,7 +170,7 @@ mod tests {
             max_rvar: CdfInt4::from(-1),
             r_num_dims: CdfInt4::from(0),
             num_zvars: CdfInt4::from(21),
-            uir_head: CdfInt8::from(10964),
+            uir_head: Some(CdfInt8::from(10964)),
             rfu_c: CdfInt4::from(0),
             date_last_leapsecond_update: CdfInt4::from(20_170_101),
             rfu_e: CdfInt4::from(-1),
@@ -188,7 +188,7 @@ mod tests {
             max_rvar: CdfInt4::from(134_639),
             r_num_dims: CdfInt4::from(1),
             num_zvars: CdfInt4::from(0),
-            uir_head: CdfInt8::from(0),
+            uir_head: None,
             rfu_c: CdfInt4::from(0),
             date_last_leapsecond_update: CdfInt4::from(-1),
             rfu_e: CdfInt4::from(-1),
