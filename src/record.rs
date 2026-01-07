@@ -23,7 +23,7 @@ pub mod spr;
 /// Unused Internal Record
 pub mod uir;
 /// Variable Values Record
-pub mod vvr;
+// pub mod vvr;
 /// Variable Index Record
 pub mod vxr;
 /// Z Variable Descriptor Record

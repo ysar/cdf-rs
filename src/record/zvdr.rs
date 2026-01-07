@@ -50,9 +50,9 @@ pub struct ZVariableDescriptorRecord {
     pub rfu_c: CdfInt4,
     /// This value is reserved for future use.
     pub rfu_f: CdfInt4,
-    /// Number of elements of this data type.
+    /// Number of elements of this data type in each variable value.
     pub num_elements: CdfInt4,
-    /// Number (identifier) for this rVariable.
+    /// Number (identifier) for this zVariable.
     pub num: CdfInt4,
     /// Offset for compression or sparse array.
     pub cpr_spr_offset: Option<CdfInt8>,

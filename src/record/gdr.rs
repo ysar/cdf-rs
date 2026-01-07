@@ -33,7 +33,7 @@ pub struct GlobalDescriptorRecord {
     /// Maximum R variable.
     pub max_rvar: CdfInt4,
     /// Number of dimensions for R variables (Note: all R variables have the same dimension.)
-    pub r_num_dims: CdfInt4,
+    pub num_r_dims: CdfInt4,
     /// Number of Z variables.
     pub num_zvars: CdfInt4,
     /// The file offset for the Unused Internal Record.
@@ -45,7 +45,7 @@ pub struct GlobalDescriptorRecord {
     /// A value reserved for future use.
     pub rfu_e: CdfInt4,
     /// Sizes for R variables.
-    pub sizes_rvar: Vec<CdfInt4>,
+    pub size_r_dims: Vec<CdfInt4>,
 }
 
 impl Decodable for GlobalDescriptorRecord {
@@ -80,10 +80,10 @@ impl Decodable for GlobalDescriptorRecord {
         let num_attributes = CdfInt4::decode_be(decoder)?;
         let max_rvar = CdfInt4::decode_be(decoder)?;
 
-        let r_num_dims = CdfInt4::decode_be(decoder)?;
+        let num_r_dims = CdfInt4::decode_be(decoder)?;
         decoder
             .context
-            .set_num_dimension_rvariable(r_num_dims.clone());
+            .set_num_dimension_rvariable(num_r_dims.clone());
 
         let num_zvars = CdfInt4::decode_be(decoder)?;
         let uir_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
@@ -106,7 +106,7 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let mut sizes_rvar = vec![CdfInt4::from(0); usize::try_from(*r_num_dims)?];
+        let mut sizes_rvar = vec![CdfInt4::from(0); usize::try_from(*num_r_dims)?];
         for s in sizes_rvar.iter_mut() {
             // If there are rVariables present, read in their dimensions.
             *s = CdfInt4::decode_be(decoder)?;
@@ -122,13 +122,13 @@ impl Decodable for GlobalDescriptorRecord {
             num_rvars,
             num_attributes,
             max_rvar,
-            r_num_dims,
+            num_r_dims,
             num_zvars,
             uir_head,
             rfu_c,
             date_last_leapsecond_update,
             rfu_e,
-            sizes_rvar,
+            size_r_dims: sizes_rvar,
         })
     }
 
@@ -168,13 +168,13 @@ mod tests {
             num_rvars: CdfInt4::from(0),
             num_attributes: CdfInt4::from(11),
             max_rvar: CdfInt4::from(-1),
-            r_num_dims: CdfInt4::from(0),
+            num_r_dims: CdfInt4::from(0),
             num_zvars: CdfInt4::from(21),
             uir_head: Some(CdfInt8::from(10964)),
             rfu_c: CdfInt4::from(0),
             date_last_leapsecond_update: CdfInt4::from(20_170_101),
             rfu_e: CdfInt4::from(-1),
-            sizes_rvar: vec![],
+            size_r_dims: vec![],
         };
         let expected2 = GlobalDescriptorRecord {
             record_size: CdfInt8::from(64),
@@ -186,13 +186,13 @@ mod tests {
             num_rvars: CdfInt4::from(15),
             num_attributes: CdfInt4::from(27),
             max_rvar: CdfInt4::from(134_639),
-            r_num_dims: CdfInt4::from(1),
+            num_r_dims: CdfInt4::from(1),
             num_zvars: CdfInt4::from(0),
             uir_head: None,
             rfu_c: CdfInt4::from(0),
             date_last_leapsecond_update: CdfInt4::from(-1),
             rfu_e: CdfInt4::from(-1),
-            sizes_rvar: vec![CdfInt4::from(3)],
+            size_r_dims: vec![CdfInt4::from(3)],
         };
         _gdr_example(file1, expected1)?;
         _gdr_example(file2, expected2)?;
@@ -219,7 +219,7 @@ mod tests {
         assert_eq!(gdr.num_rvars, exp.num_rvars);
         assert_eq!(gdr.num_attributes, exp.num_attributes);
         assert_eq!(gdr.max_rvar, exp.max_rvar);
-        assert_eq!(gdr.r_num_dims, exp.r_num_dims);
+        assert_eq!(gdr.num_r_dims, exp.num_r_dims);
         assert_eq!(gdr.num_zvars, exp.num_zvars);
         assert_eq!(gdr.uir_head, exp.uir_head);
         assert_eq!(gdr.rfu_c, exp.rfu_c);
@@ -228,9 +228,9 @@ mod tests {
             exp.date_last_leapsecond_update
         );
         assert_eq!(gdr.rfu_e, exp.rfu_e);
-        assert_eq!(gdr.sizes_rvar.len(), exp.sizes_rvar.len());
-        for i in 0..gdr.sizes_rvar.len() {
-            assert_eq!(gdr.sizes_rvar[i], exp.sizes_rvar[i]);
+        assert_eq!(gdr.size_r_dims.len(), exp.size_r_dims.len());
+        for i in 0..gdr.size_r_dims.len() {
+            assert_eq!(gdr.size_r_dims[i], exp.size_r_dims[i]);
         }
         Ok(())
     }

@@ -50,7 +50,8 @@ pub struct RVariableDescriptorRecord {
     pub rfu_c: CdfInt4,
     /// This value is reserved for future use.
     pub rfu_f: CdfInt4,
-    /// Number of elements of this data type.
+    /// Number of elements of this data type in each variable value. Usually 1, for Chars this is
+    /// the length of the string.
     pub num_elements: CdfInt4,
     /// Number (identifier) for this rVariable.
     pub num: CdfInt4,

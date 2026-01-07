@@ -74,3 +74,34 @@ Currently I am focusing on decoding (parsing) CDFs, since most users are interes
 files rather than generating them. After the decoding part is done, I will work on the encoding 
 (writing).  Hopefully the encoders are not too difficult to implement by reversing the steps 
 followed while decoding.
+
+## Heirarchy of a CDF file
+
+-  `-->` represents a parent-child relationship.
+- In a linked-list, only first record is expanded.
+
+```text
+CDR 
+|
+|---> GDR
+      |
+      | --> rVDR --> rVDR --> ... rVDR        (for each rVariable)
+      |     |
+      |     |--> VXR --> VXR ... VXR 
+      |          |
+      |          |--> VVR
+      |          |  
+      |          |--> CVVR
+      |          | 
+      |          |--> VXR ... 
+      |
+      | --> zVDR --> zVDR --> ... zVDR        (for each zVariable)
+      |
+      | --> ADR  --> ADR  --> ... ADR         (for each attribute)
+      |     |
+      |     |--> AGREDR --> AGREDR --> ... AGREDR 
+      |     | 
+      |     |--> AZEDR  --> AZEDR  --> ... AZEDR 
+      |
+      | --> UIR  --> UIR  --> ... UIR
+```

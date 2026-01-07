@@ -15,6 +15,7 @@ use crate::record::collection::get_record_vec;
 use crate::record::gdr::GlobalDescriptorRecord;
 use crate::record::rvdr::RVariableDescriptorRecord;
 use crate::record::uir::UnusedInternalRecord;
+// use crate::record::vvr::{RVariableValuesRecord, ZVariableValuesRecord};
 use crate::record::vxr::VariableIndexRecord;
 use crate::record::zvdr::ZVariableDescriptorRecord;
 use crate::repr::CdfVersion;
@@ -45,6 +46,10 @@ pub struct Cdf {
     pub rvxr_vec: Vec<Vec<VariableIndexRecord>>,
     /// Vector storing all Variable Index Records for zVariables.
     pub zvxr_vec: Vec<Vec<VariableIndexRecord>>,
+    /// Vector storing all rVariable Values Records.
+    // pub rvvr_vec: Vec<RVariableValuesRecord>,
+    /// Vector storing all zVariable Values Records.
+    // pub zvvr_vec: Vec<ZVariableValuesRecord>,
     /// Vector storing all the Unused Internal Records,
     pub uir_vec: Vec<UnusedInternalRecord>,
 }

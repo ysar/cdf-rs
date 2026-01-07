@@ -85,6 +85,8 @@ impl Decodable for CdfDescriptorRecord {
             md5_checksum: *flags & 8i32 == 8,
         };
 
+        decoder.context.set_row_majority(flags.row_major);
+
         let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
             return Err(CdfError::Decode(format!(

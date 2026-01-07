@@ -62,6 +62,8 @@ pub struct DecodeContext {
     version: Option<CdfVersion>,
     /// Number of dimensions of rVariables. This is used by the RVDR.
     r_num_dims: Option<CdfInt4>,
+    /// Whether variable records are stored in row-major (true) or column-major (false) format.
+    row_major: Option<bool>,
 }
 
 impl DecodeContext {
@@ -71,6 +73,7 @@ impl DecodeContext {
             encoding: None,
             version: None,
             r_num_dims: None,
+            row_major: None,
         }
     }
 
@@ -107,9 +110,21 @@ impl DecodeContext {
         self.r_num_dims = Some(num_dim);
     }
 
-    /// Sets the dimension for rVariables within this CDF file.
+    /// Gets the dimension for rVariables within this CDF file.
     pub fn get_num_dimension_rvariable(&mut self) -> Result<CdfInt4, CdfError> {
         self.r_num_dims.clone().ok_or(CdfError::Decode(
+            "No rVariable dimension length stored in decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the dimension for rVariables within this CDF file.
+    pub fn set_row_majority(&mut self, row_major: bool) {
+        self.row_major = Some(row_major);
+    }
+
+    /// Gets the dimension for rVariables within this CDF file.
+    pub fn is_row_major(&mut self) -> Result<bool, CdfError> {
+        self.row_major.clone().ok_or(CdfError::Decode(
             "No rVariable dimension length stored in decoding context.".to_string(),
         ))
     }

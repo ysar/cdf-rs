@@ -27,7 +27,8 @@ pub struct AttributeGREntryDescriptorRecord {
     pub data_type: CdfInt4,
     /// The numeric identifier for this AGREDR.
     pub num: CdfInt4,
-    /// The number of elements stored within this record.
+    /// The number of elements stored within each value of this record. Usually 1, for Chars it is
+    /// the length of the string.
     pub num_elements: CdfInt4,
     /// The number of strings stored within this record.
     pub num_strings: CdfInt4,
