@@ -29,10 +29,10 @@ This reads in the entire content of the CDF file.
 let cdf = Cdf::read_cdf_file(PathBuf::from("examples/data/test_alltypes.cdf")).unwrap();
 ```
 ## Dependencies
-By default `cdf-rs` has no dependencies yet. If you want `serde` support, you need to enable the 
-`serde` feature.
+By default `cdf-rs` has no dependencies (as of yet). If you want `serde` support, you need to enable
+the `serde` feature.
 
-## The CDF data model and `serde` 
+## The CDF data model
 
 A CDF file is a collection of 'records'. There are different kinds of records, and some records 
 point to other records of a different type, or different records of the same type 
@@ -40,6 +40,49 @@ point to other records of a different type, or different records of the same typ
 etc. Different kinds of CDF records, and different kinds of CDF primitive types are defined in the 
 CDF Internal Format specification.
 
+**Heirarchy of a CDF file**  
+The CDF format is heirarchical and `cdf-rs` makes use of this to deserialize (and eventually serialize) .cdf files.
+- Arrows indicate the presence of file-offset pointer. Think of `|` and `-->` as "points to".
+- Some records point to another record of the same type, creating a linked-list.
+- The VXR is the only record that can point to a lower-level VXR.
+
+```text
+CDR 
+|
+|---> GDR
+      |
+      | --> rVDR --> rVDR --> ... rVDR        (for each rVariable)
+      |     |
+      |     |--> VXR --> VXR ... VXR 
+      |          |
+      |          |--> VVR
+      |          |  
+      |          |--> CVVR
+      |          | 
+      |          |--> VXR --> VXR ... 
+      |               | ...
+      |
+      | --> zVDR --> zVDR --> ... zVDR        (for each zVariable)
+      |     |
+      |     |--> VXR --> VXR ... VXR 
+      |          |
+      |          |--> VVR
+      |          |  
+      |          |--> CVVR
+      |          | 
+      |          |--> VXR --> VXR ... 
+      |               | ...
+      |
+      | --> ADR  --> ADR  --> ... ADR         (for each attribute)
+      |     |
+      |     |--> AGREDR --> AGREDR --> ... AGREDR 
+      |     | 
+      |     |--> AZEDR  --> AZEDR  --> ... AZEDR 
+      |
+      | --> UIR  --> UIR  --> ... UIR
+```
+
+# Using cdf-rs with serde 
 In a way, `cdf-rs` mimics `serde`'s strategy by creating its own data model via types that wrap 
 around native Rust types.  In addition, nearly all "CdfTypes" implement `serde::Serialize` and 
 `serde::Deserialize` and can be used, for example, to store the contents of the CDF file into a 
@@ -74,34 +117,3 @@ Currently I am focusing on decoding (parsing) CDFs, since most users are interes
 files rather than generating them. After the decoding part is done, I will work on the encoding 
 (writing).  Hopefully the encoders are not too difficult to implement by reversing the steps 
 followed while decoding.
-
-## Heirarchy of a CDF file
-
--  `-->` represents a parent-child relationship.
-- In a linked-list, only first record is expanded.
-
-```text
-CDR 
-|
-|---> GDR
-      |
-      | --> rVDR --> rVDR --> ... rVDR        (for each rVariable)
-      |     |
-      |     |--> VXR --> VXR ... VXR 
-      |          |
-      |          |--> VVR
-      |          |  
-      |          |--> CVVR
-      |          | 
-      |          |--> VXR ... 
-      |
-      | --> zVDR --> zVDR --> ... zVDR        (for each zVariable)
-      |
-      | --> ADR  --> ADR  --> ... ADR         (for each attribute)
-      |     |
-      |     |--> AGREDR --> AGREDR --> ... AGREDR 
-      |     | 
-      |     |--> AZEDR  --> AZEDR  --> ... AZEDR 
-      |
-      | --> UIR  --> UIR  --> ... UIR
-```

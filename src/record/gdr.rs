@@ -4,6 +4,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
+    record::{
+        adr::AttributeDescriptorRecord, collection::get_record_vec,
+        rvdr::RVariableDescriptorRecord, uir::UnusedInternalRecord,
+        zvdr::ZVariableDescriptorRecord,
+    },
     repr::CdfVersion,
     types::{CdfInt4, CdfInt8},
 };
@@ -46,6 +51,14 @@ pub struct GlobalDescriptorRecord {
     pub rfu_e: CdfInt4,
     /// Sizes for R variables.
     pub size_r_dims: Vec<CdfInt4>,
+    /// Vector of rVariable descriptor records.
+    pub rvdr_vec: Vec<RVariableDescriptorRecord>,
+    /// Vector of zVariable descriptor records.
+    pub zvdr_vec: Vec<ZVariableDescriptorRecord>,
+    /// Vector of attribute descriptor records.
+    pub adr_vec: Vec<AttributeDescriptorRecord>,
+    /// Vector of unused internal records.
+    pub uir_vec: Vec<UnusedInternalRecord>,
 }
 
 impl Decodable for GlobalDescriptorRecord {
@@ -106,11 +119,35 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let mut sizes_rvar = vec![CdfInt4::from(0); usize::try_from(*num_r_dims)?];
-        for s in sizes_rvar.iter_mut() {
+        let mut size_r_dims = vec![CdfInt4::from(0); usize::try_from(*num_r_dims)?];
+        for s in size_r_dims.iter_mut() {
             // If there are rVariables present, read in their dimensions.
             *s = CdfInt4::decode_be(decoder)?;
         }
+
+        let rvdr_vec = if let Some(head) = &rvdr_head {
+            get_record_vec::<R, RVariableDescriptorRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
+
+        let zvdr_vec = if let Some(head) = &zvdr_head {
+            get_record_vec::<R, ZVariableDescriptorRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
+
+        let adr_vec = if let Some(head) = &adr_head {
+            get_record_vec::<R, AttributeDescriptorRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
+
+        let uir_vec = if let Some(head) = &uir_head {
+            get_record_vec::<R, UnusedInternalRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
 
         Ok(Self {
             record_size,
@@ -128,7 +165,11 @@ impl Decodable for GlobalDescriptorRecord {
             rfu_c,
             date_last_leapsecond_update,
             rfu_e,
-            size_r_dims: sizes_rvar,
+            size_r_dims,
+            rvdr_vec,
+            zvdr_vec,
+            adr_vec,
+            uir_vec,
         })
     }
 
@@ -175,6 +216,10 @@ mod tests {
             date_last_leapsecond_update: CdfInt4::from(20_170_101),
             rfu_e: CdfInt4::from(-1),
             size_r_dims: vec![],
+            rvdr_vec: vec![], // Don't check for this right now.
+            zvdr_vec: vec![],
+            adr_vec: vec![],
+            uir_vec: vec![],
         };
         let expected2 = GlobalDescriptorRecord {
             record_size: CdfInt8::from(64),
@@ -193,6 +238,10 @@ mod tests {
             date_last_leapsecond_update: CdfInt4::from(-1),
             rfu_e: CdfInt4::from(-1),
             size_r_dims: vec![CdfInt4::from(3)],
+            rvdr_vec: vec![],
+            zvdr_vec: vec![],
+            adr_vec: vec![],
+            uir_vec: vec![],
         };
         _gdr_example(file1, expected1)?;
         _gdr_example(file2, expected2)?;
@@ -208,7 +257,7 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        let gdr = &cdf.gdr;
+        let gdr = &cdf.cdr.gdr;
         assert_eq!(gdr.record_size, exp.record_size);
         assert_eq!(gdr.record_size, exp.record_size);
         assert_eq!(gdr.record_type, exp.record_type);

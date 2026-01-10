@@ -4,7 +4,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
-    record::collection::RecordList,
+    record::{
+        agredr::AttributeGREntryDescriptorRecord,
+        azedr::AttributeZEntryDescriptorRecord,
+        collection::{get_record_vec, RecordList},
+    },
     types::{CdfInt4, CdfInt8, CdfString},
 };
 use std::io;
@@ -41,6 +45,10 @@ pub struct AttributeDescriptorRecord {
     pub rfu_e: CdfInt4,
     /// Name of this attribute.
     pub name: CdfString,
+    /// Store vec of AGREDRs associated with this attribute.
+    pub agredr_vec: Vec<AttributeGREntryDescriptorRecord>,
+    /// Store vec of AZEDRs associated with this attribute.
+    pub azedr_vec: Vec<AttributeZEntryDescriptorRecord>,
 }
 
 impl Decodable for AttributeDescriptorRecord {
@@ -96,6 +104,18 @@ impl Decodable for AttributeDescriptorRecord {
             CdfString::decode_string_from_numbytes(decoder, 256)?
         };
 
+        let agredr_vec = if let Some(head) = &agredr_head {
+            get_record_vec::<R, AttributeGREntryDescriptorRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
+
+        let azedr_vec = if let Some(head) = &azedr_head {
+            get_record_vec::<R, AttributeZEntryDescriptorRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
+
         Ok(AttributeDescriptorRecord {
             record_size,
             record_type,
@@ -111,6 +131,8 @@ impl Decodable for AttributeDescriptorRecord {
             max_z_entry,
             rfu_e,
             name,
+            agredr_vec,
+            azedr_vec,
         })
     }
 
@@ -160,7 +182,7 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        let adr_vec = &cdf.adr_vec;
+        let adr_vec = &cdf.cdr.gdr.adr_vec;
         // There are many ADR records in each file and I don't know how to validate each individually
         // so for now this hack of checking the length of the ADR vector.
         assert_eq!(adr_vec.len(), adr_length);

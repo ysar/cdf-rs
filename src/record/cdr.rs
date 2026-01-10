@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
+    record::gdr::GlobalDescriptorRecord,
     repr::{CdfEncoding, CdfVersion},
     types::{CdfInt4, CdfInt8, CdfString},
 };
@@ -50,6 +51,8 @@ pub struct CdfDescriptorRecord {
     pub rfu_e: CdfInt4,
     /// The copyright string.
     pub copyright: CdfString,
+    /// Contents of the global descriptor record.
+    pub gdr: GlobalDescriptorRecord,
 }
 
 impl Decodable for CdfDescriptorRecord {
@@ -121,6 +124,8 @@ impl Decodable for CdfDescriptorRecord {
             CdfString::decode_string_from_numbytes(decoder, 256)?
         };
 
+        let gdr = GlobalDescriptorRecord::decode_be(decoder)?;
+
         Ok(CdfDescriptorRecord {
             record_size,
             record_type,
@@ -133,6 +138,7 @@ impl Decodable for CdfDescriptorRecord {
             identifier,
             rfu_e,
             copyright,
+            gdr,
         })
     }
 

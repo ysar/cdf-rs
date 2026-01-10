@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{self, BufReader, SeekFrom};
+use std::io::{self, BufReader};
 use std::path::PathBuf;
 
 #[cfg(feature = "serde")]
@@ -7,17 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::decode::{Decodable, Decoder};
 use crate::error::CdfError;
-use crate::record::adr::AttributeDescriptorRecord;
-use crate::record::agredr::AttributeGREntryDescriptorRecord;
-use crate::record::azedr::AttributeZEntryDescriptorRecord;
 use crate::record::cdr::CdfDescriptorRecord;
-use crate::record::collection::get_record_vec;
-use crate::record::gdr::GlobalDescriptorRecord;
-use crate::record::rvdr::RVariableDescriptorRecord;
-use crate::record::uir::UnusedInternalRecord;
-// use crate::record::vvr::{RVariableValuesRecord, ZVariableValuesRecord};
-use crate::record::vxr::VariableIndexRecord;
-use crate::record::zvdr::ZVariableDescriptorRecord;
 use crate::repr::CdfVersion;
 use crate::types::CdfUint4;
 
@@ -30,28 +20,6 @@ pub struct Cdf {
     pub is_compressed: bool,
     /// Contents of the CDF Descriptor Record.
     pub cdr: CdfDescriptorRecord,
-    /// Contents of the Global Descriptor Record.
-    pub gdr: GlobalDescriptorRecord,
-    /// Vector storing all Attribute Descriptor Record.
-    pub adr_vec: Vec<AttributeDescriptorRecord>,
-    /// Vector of all Attribute Entry Descriptor Records of type G/R for each ADR.
-    pub agredr_vec: Vec<Vec<AttributeGREntryDescriptorRecord>>,
-    /// Vector of all Attribute Entry Descriptor Records of type Z for each ADR.
-    pub azedr_vec: Vec<Vec<AttributeZEntryDescriptorRecord>>,
-    /// Vector storing all rVariable Descriptor Records.
-    pub rvdr_vec: Vec<RVariableDescriptorRecord>,
-    /// Vector storing all zVariable Descriptor Records.
-    pub zvdr_vec: Vec<ZVariableDescriptorRecord>,
-    /// Vector storing all Variable Index Records for rVariables.
-    pub rvxr_vec: Vec<Vec<VariableIndexRecord>>,
-    /// Vector storing all Variable Index Records for zVariables.
-    pub zvxr_vec: Vec<Vec<VariableIndexRecord>>,
-    /// Vector storing all rVariable Values Records.
-    // pub rvvr_vec: Vec<RVariableValuesRecord>,
-    /// Vector storing all zVariable Values Records.
-    // pub zvvr_vec: Vec<ZVariableValuesRecord>,
-    /// Vector storing all the Unused Internal Records,
-    pub uir_vec: Vec<UnusedInternalRecord>,
 }
 
 impl Cdf {
@@ -95,100 +63,7 @@ impl Decodable for Cdf {
         // Parse the CDF Descriptor Record that is present after the magic numbers.
         let cdr = CdfDescriptorRecord::decode_be(decoder)?;
 
-        // Parse the Global Descriptor Record. The GDR can be present at any file offset, so we need
-        // to `seek` to the `gdr_offset` value read in the CDR.
-        _ = decoder
-            .reader
-            .seek(SeekFrom::Start(u64::try_from(*cdr.gdr_offset)?))?;
-
-        let gdr = GlobalDescriptorRecord::decode_be(decoder)?;
-
-        // There MAY be attribute descriptor records present. Collect these into a vec of ADRs.
-        // They are stored in the CDF in a linked-list with each record pointing to the next.
-        let adr_vec = if let Some(adr_head) = &gdr.adr_head {
-            get_record_vec::<R, AttributeDescriptorRecord>(decoder, adr_head)?
-        } else {
-            vec![]
-        };
-
-        // There may be attribute entry descriptor records present in the form of a linked-list.
-        // There are two types - the AGREDR and AZEDR.  Both types have separate linked-lists.
-        // Each ADR may contain several linked-lists corresponding to each attribute, hence the
-        // Vec<Vec<_>>.
-        let mut agredr_vec = vec![];
-        for adr in &adr_vec {
-            let agredr_this = if let Some(agredr_head) = &adr.agredr_head {
-                get_record_vec::<R, AttributeGREntryDescriptorRecord>(decoder, agredr_head)?
-            } else {
-                vec![]
-            };
-            agredr_vec.push(agredr_this);
-        }
-
-        let mut azedr_vec = vec![];
-        for adr in &adr_vec {
-            let azedr_vec_this = if let Some(azedr_head) = &adr.azedr_head {
-                get_record_vec::<R, AttributeZEntryDescriptorRecord>(decoder, azedr_head)?
-            } else {
-                vec![]
-            };
-            azedr_vec.push(azedr_vec_this);
-        }
-
-        // There MAY be multiple rVariable descriptor records present. Collect these into a vec.
-        let rvdr_vec = if let Some(rvdr_head) = &gdr.rvdr_head {
-            get_record_vec::<R, RVariableDescriptorRecord>(decoder, rvdr_head)?
-        } else {
-            vec![]
-        };
-
-        // There MAY be multiple zVariable descriptor records present. Collect these into a vec.
-        let zvdr_vec = if let Some(zvdr_head) = &gdr.zvdr_head {
-            get_record_vec::<R, ZVariableDescriptorRecord>(decoder, zvdr_head)?
-        } else {
-            vec![]
-        };
-
-        let mut rvxr_vec = vec![];
-        for vdr in &rvdr_vec {
-            let vxr_this = if let Some(vxr_head) = &vdr.vxr_head {
-                get_record_vec::<R, VariableIndexRecord>(decoder, vxr_head)?
-            } else {
-                vec![]
-            };
-            rvxr_vec.push(vxr_this);
-        }
-
-        let mut zvxr_vec = vec![];
-        for vdr in &zvdr_vec {
-            let vxr_this = if let Some(vxr_head) = &vdr.vxr_head {
-                get_record_vec::<R, VariableIndexRecord>(decoder, vxr_head)?
-            } else {
-                vec![]
-            };
-            zvxr_vec.push(vxr_this);
-        }
-
-        // Store the linked-list of unused records as a vec.
-        let uir_vec = if let Some(uir_head) = &gdr.uir_head {
-            get_record_vec::<R, UnusedInternalRecord>(decoder, uir_head)?
-        } else {
-            vec![]
-        };
-
-        Ok(Cdf {
-            is_compressed,
-            cdr,
-            gdr,
-            adr_vec,
-            agredr_vec,
-            azedr_vec,
-            rvdr_vec,
-            zvdr_vec,
-            rvxr_vec,
-            zvxr_vec,
-            uir_vec,
-        })
+        Ok(Cdf { is_compressed, cdr })
     }
 
     fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>

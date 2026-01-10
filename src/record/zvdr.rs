@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
-    record::collection::RecordList,
+    record::{
+        collection::{get_record_vec, RecordList},
+        vxr::VariableIndexRecord,
+    },
     repr::Endian,
     types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfString, CdfType},
 };
@@ -68,6 +71,8 @@ pub struct ZVariableDescriptorRecord {
     pub dim_variances: Vec<bool>,
     /// Pad value of this variable.
     pub pad_value: Vec<CdfType>,
+    /// Vector of Variable Index Records.
+    pub vxr_vec: Vec<VariableIndexRecord>,
 }
 
 impl Decodable for ZVariableDescriptorRecord {
@@ -171,6 +176,12 @@ impl Decodable for ZVariableDescriptorRecord {
             vec![]
         };
 
+        let vxr_vec = if let Some(head) = &vxr_head {
+            get_record_vec::<R, VariableIndexRecord>(decoder, head)?
+        } else {
+            vec![]
+        };
+
         Ok(ZVariableDescriptorRecord {
             record_size,
             record_type,
@@ -193,6 +204,7 @@ impl Decodable for ZVariableDescriptorRecord {
             size_z_dims,
             dim_variances,
             pad_value,
+            vxr_vec,
         })
     }
 
@@ -242,7 +254,7 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        assert_eq!(cdf.zvdr_vec.len(), zvdr_len);
+        assert_eq!(cdf.cdr.gdr.zvdr_vec.len(), zvdr_len);
         // dbg!(cdf.zvdr_vec.len());
         Ok(())
     }

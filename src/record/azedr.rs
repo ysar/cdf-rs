@@ -5,7 +5,9 @@ use crate::decode::{decode_version3_int4_int8, Decodable, Decoder};
 use crate::error::CdfError;
 use crate::record::collection::RecordList;
 use crate::repr::Endian;
-use crate::types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfType};
+use crate::types::{
+    decode_cdf_type_be, decode_cdf_type_le, CdfChar, CdfInt4, CdfInt8, CdfString, CdfType,
+};
 use std::io;
 
 /// Struct to store contents of an Attribute Entry Descriptor Record that stores information on
@@ -113,6 +115,22 @@ impl Decodable for AttributeZEntryDescriptorRecord {
             }
         }
 
+        // If the type for value is Vec<CdfType::char>, it is better to convert to a Vec<CdfString>
+        // Ideally we would want something like impl Iterator here instead ? Maybe?
+        let value = if let CdfType::Char(_) = value[0].clone() {
+            let chars: Vec<CdfChar> = value
+                .into_iter()
+                .flat_map(|v| match v {
+                    CdfType::Char(c) => Some(c),
+                    _ => None,
+                })
+                .collect();
+
+            vec![CdfType::String(CdfString::from_slice_chars(&chars))]
+        } else {
+            value
+        };
+
         Ok(AttributeZEntryDescriptorRecord {
             record_size,
             record_type,
@@ -176,10 +194,9 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        let adr_vec = &cdf.adr_vec;
-        let azedr_vec_all = &cdf.azedr_vec;
-        for (adr, azedr_vec) in adr_vec.iter().zip(azedr_vec_all) {
-            assert_eq!(*adr.num_z_entries as usize, azedr_vec.len());
+        let adr_vec = &cdf.cdr.gdr.adr_vec;
+        for adr in adr_vec.iter() {
+            assert_eq!(*adr.num_z_entries as usize, adr.azedr_vec.len());
         }
         Ok(())
     }

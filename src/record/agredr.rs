@@ -194,10 +194,9 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        let adr_vec = &cdf.adr_vec;
-        let agredr_vec_all = &cdf.agredr_vec;
-        for (adr, agredr_vec) in adr_vec.iter().zip(agredr_vec_all) {
-            assert_eq!(*adr.num_gr_entries as usize, agredr_vec.len());
+        let adr_vec = &cdf.cdr.gdr.adr_vec;
+        for adr in adr_vec.iter() {
+            assert_eq!(*adr.num_gr_entries as usize, adr.agredr_vec.len());
         }
         Ok(())
     }

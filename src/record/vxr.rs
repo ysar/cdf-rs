@@ -8,6 +8,16 @@ use crate::{
     types::{CdfInt4, CdfInt8},
 };
 
+/// Possible child records of the Variable Index Record.
+pub enum VariableIndexRecordChild {
+    /// Contains a Variable Values record.
+    VVR,
+    /// Contains a Compressed Variable Values record.
+    CVVR,
+    /// Contains a lower-level Variable Index record.
+    VXR,
+}
+
 /// Stores the contents of a Variable Index Record.
 /// Variable Index Records are used in single-file CDFs to store the file offsets of any
 /// lower level of VXRs, Variable Values Records, or Compressed Variable Value Records.
@@ -24,9 +34,9 @@ pub struct VariableIndexRecord {
     pub num_entries: CdfInt4,
     /// The number of index entries actually used in this VXR.
     pub num_used_entries: CdfInt4,
-    /// Record numbers of the first variable in VVRs or lower level VXR.
+    /// Record numbers of the first variable in VVRs or lower-level VXR.
     pub first: Vec<Option<CdfInt4>>,
-    /// Record numbers of the last variable in VVRs or lower level VXR.
+    /// Record numbers of the last variable in VVRs or lower-level VXR.
     pub last: Vec<Option<CdfInt4>>,
     /// File offset of the VVR, CVVR or lower level VXR.
     pub offset: Vec<Option<CdfInt8>>,
@@ -137,8 +147,12 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        assert_eq!(cdf.rvxr_vec.len(), cdf.rvdr_vec.len());
-        assert_eq!(cdf.zvxr_vec.len(), cdf.zvdr_vec.len());
+        for vdr in cdf.cdr.gdr.rvdr_vec.iter() {
+            assert_eq!(vdr.vxr_vec.len(), *cdf.cdr.gdr.num_rvars as usize);
+        }
+        for vdr in cdf.cdr.gdr.zvdr_vec.iter() {
+            assert_eq!(vdr.vxr_vec.len(), *cdf.cdr.gdr.num_zvars as usize);
+        }
 
         // if !cdf.rvxr_vec.is_empty() {
         //     dbg!(cdf.rvxr_vec);
