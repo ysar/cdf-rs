@@ -26,8 +26,7 @@ pub struct CompressedVariableValuesRecord {
 }
 
 impl Decodable for CompressedVariableValuesRecord {
-    type Value = Self;
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {
@@ -63,7 +62,7 @@ impl Decodable for CompressedVariableValuesRecord {
             data,
         })
     }
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

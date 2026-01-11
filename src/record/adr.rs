@@ -52,9 +52,7 @@ pub struct AttributeDescriptorRecord {
 }
 
 impl Decodable for AttributeDescriptorRecord {
-    type Value = Self;
-
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

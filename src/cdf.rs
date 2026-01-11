@@ -32,8 +32,6 @@ impl Cdf {
     }
 }
 impl Decodable for Cdf {
-    type Value = Self;
-
     /// Decode a value from the input that implements `io::Read`.
     fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where

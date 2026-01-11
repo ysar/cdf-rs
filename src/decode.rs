@@ -5,15 +5,12 @@ use crate::repr::{CdfEncoding, CdfVersion};
 use crate::types::{CdfInt4, CdfInt8};
 
 /// Trait for decoding a CDF result from a reader.
-pub trait Decodable {
-    /// The value that is returned after decoding.
-    type Value;
-
+pub trait Decodable: Sized {
     /// Decode a value from the input that implements `io::Read` and `io::Seek` using Big-Endian
     /// encoding.
     /// # Errors
     /// Returns a [`CdfError::Decode`] if the decoding fails for any reason.
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek;
 
@@ -21,9 +18,41 @@ pub trait Decodable {
     /// encoding.
     /// # Errors
     /// Returns a [`CdfError::Decode`] if the decoding fails for any reason.
-    fn decode_le<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_le<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek;
+
+    /// Decode a sequential collection of this type into a vector using big-endian encoding.
+    fn decode_vec_be<R>(
+        decoder: &mut Decoder<R>,
+        num_elements: CdfInt4,
+    ) -> Result<Vec<Self>, CdfError>
+    where
+        R: io::Read + io::Seek,
+    {
+        let n = usize::try_from(*num_elements)?;
+        let mut result: Vec<Self> = Vec::with_capacity(n);
+        for _ in 0..n {
+            result.push(Self::decode_be(decoder)?);
+        }
+        Ok(result)
+    }
+
+    /// Decode a sequential collection of this type into a vector using little-endian encoding.
+    fn decode_vec_le<R>(
+        decoder: &mut Decoder<R>,
+        num_elements: CdfInt4,
+    ) -> Result<Vec<Self>, CdfError>
+    where
+        R: io::Read + io::Seek,
+    {
+        let n = usize::try_from(*num_elements)?;
+        let mut result: Vec<Self> = Vec::with_capacity(n);
+        for _ in 0..n {
+            result.push(Self::decode_le(decoder)?);
+        }
+        Ok(result)
+    }
 }
 
 /// Struct containing the reader and decoding configurations.

@@ -5,9 +5,7 @@ use crate::decode::{decode_version3_int4_int8, Decodable, Decoder};
 use crate::error::CdfError;
 use crate::record::collection::RecordList;
 use crate::repr::Endian;
-use crate::types::{
-    decode_cdf_type_be, decode_cdf_type_le, CdfChar, CdfInt4, CdfInt8, CdfString, CdfType,
-};
+use crate::types::{CdfInt4, CdfInt8, CdfType};
 use std::io;
 
 /// Struct to store contents of an Attribute Entry Descriptor Record that stores information on
@@ -40,15 +38,14 @@ pub struct AttributeGREntryDescriptorRecord {
     pub rfu_d: CdfInt4,
     /// A value reserved for future use.
     pub rfu_e: CdfInt4,
-    /// The values stored inside this AGREDR.
+    /// The values stored inside this AGREDR.  When decoding, the type is inferred from the CDF
+    /// file, so it cannot be known at compile time.
     pub value: Vec<CdfType>,
 }
 
 impl Decodable for AttributeGREntryDescriptorRecord {
-    type Value = Self;
-
     /// Decode a value from the input that implements `io::Read`.
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {
@@ -99,36 +96,10 @@ impl Decodable for AttributeGREntryDescriptorRecord {
         }
 
         // Read in the values of this attribute based on the encoding specified in the CDR.
-        let mut value: Vec<CdfType> = Vec::with_capacity(usize::try_from(*num_elements)?);
         let endianness = decoder.context.get_encoding()?.get_endian()?;
-
-        match endianness {
-            Endian::Big => {
-                for _ in 0..*num_elements {
-                    value.push(decode_cdf_type_be(decoder, *data_type)?);
-                }
-            }
-            Endian::Little => {
-                for _ in 0..*num_elements {
-                    value.push(decode_cdf_type_le(decoder, *data_type)?);
-                }
-            }
-        }
-
-        // If the type for value is Vec<CdfType::char>, it is better to convert to a Vec<CdfString>
-        // Ideally we would want something like impl Iterator here instead ? Maybe?
-        let value = if let CdfType::Char(_) = value[0].clone() {
-            let chars: Vec<CdfChar> = value
-                .into_iter()
-                .flat_map(|v| match v {
-                    CdfType::Char(c) => Some(c),
-                    _ => None,
-                })
-                .collect();
-
-            vec![CdfType::String(CdfString::from_slice_chars(&chars))]
-        } else {
-            value
+        let value = match endianness {
+            Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
+            Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
         };
 
         Ok(AttributeGREntryDescriptorRecord {

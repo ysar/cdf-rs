@@ -43,8 +43,6 @@ pub struct VariableIndexRecord {
 }
 
 impl Decodable for VariableIndexRecord {
-    type Value = Self;
-
     fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: std::io::Read + std::io::Seek,

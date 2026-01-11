@@ -62,9 +62,7 @@ pub struct GlobalDescriptorRecord {
 }
 
 impl Decodable for GlobalDescriptorRecord {
-    type Value = Self;
-
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

@@ -9,7 +9,7 @@ use crate::{
         vxr::VariableIndexRecord,
     },
     repr::Endian,
-    types::{decode_cdf_type_be, decode_cdf_type_le, CdfInt4, CdfInt8, CdfString, CdfType},
+    types::{CdfInt4, CdfInt8, CdfString, CdfType},
 };
 use std::io;
 
@@ -76,9 +76,7 @@ pub struct ZVariableDescriptorRecord {
 }
 
 impl Decodable for ZVariableDescriptorRecord {
-    type Value = Self;
-
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {
@@ -154,26 +152,10 @@ impl Decodable for ZVariableDescriptorRecord {
             }
         }
 
-        let pad_value = if flags.has_padding {
-            // Read in the values of this attribute based on the encoding specified in the CDR.
-            let mut value: Vec<CdfType> = Vec::with_capacity(usize::try_from(*num_elements)?);
-            let endianness = decoder.context.get_encoding()?.get_endian()?;
-
-            match endianness {
-                Endian::Big => {
-                    for _ in 0..*num_elements {
-                        value.push(decode_cdf_type_be(decoder, *data_type)?);
-                    }
-                }
-                Endian::Little => {
-                    for _ in 0..*num_elements {
-                        value.push(decode_cdf_type_le(decoder, *data_type)?);
-                    }
-                }
-            }
-            value
-        } else {
-            vec![]
+        let endianness = decoder.context.get_encoding()?.get_endian()?;
+        let pad_value = match endianness {
+            Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
+            Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
         };
 
         let vxr_vec = if let Some(head) = &vxr_head {
@@ -208,7 +190,7 @@ impl Decodable for ZVariableDescriptorRecord {
         })
     }
 
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: std::io::Read + std::io::Seek,
     {

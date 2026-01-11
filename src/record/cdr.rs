@@ -56,8 +56,6 @@ pub struct CdfDescriptorRecord {
 }
 
 impl Decodable for CdfDescriptorRecord {
-    type Value = Self;
-
     /// Decode the CDF Descriptor Record from the CDF file.
     fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where

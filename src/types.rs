@@ -97,8 +97,6 @@ macro_rules! impl_cdf_display_debug {
 macro_rules! impl_decodable {
     ($cdf_type:ident) => {
         impl Decodable for $cdf_type {
-            type Value = Self;
-
             fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
             where
                 R: io::Read + io::Seek,
@@ -333,6 +331,8 @@ impl CdfString {
     }
 }
 
+// impl CdfType for CdfString {}
+
 impl_cdf_rust_from!(CdfString, String);
 impl_cdf_rust_ptr!(CdfString, String);
 impl_cdf_display_debug!(CdfString);
@@ -382,69 +382,105 @@ pub enum CdfType {
     String(CdfString) = 101,
 }
 
-/// Decodes any CDF data type assuming Big-Endian encoding, given its numeric identifier, as defined
-/// in Table 5.9 in the CDF specification.
-/// # Errors
-/// Returns a [`CdfError::Decode`] if the decoding fails for any reason.
-pub fn decode_cdf_type_be<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, CdfError>
-where
-    R: io::Read + io::Seek,
-{
-    match data_type {
-        1 => Ok(CdfType::Int1(CdfInt1::decode_be(decoder)?)),
-        2 => Ok(CdfType::Int2(CdfInt2::decode_be(decoder)?)),
-        4 => Ok(CdfType::Int4(CdfInt4::decode_be(decoder)?)),
-        8 => Ok(CdfType::Int8(CdfInt8::decode_be(decoder)?)),
-        11 => Ok(CdfType::Uint1(CdfUint1::decode_be(decoder)?)),
-        12 => Ok(CdfType::Uint2(CdfUint2::decode_be(decoder)?)),
-        14 => Ok(CdfType::Uint4(CdfUint4::decode_be(decoder)?)),
-        21 => Ok(CdfType::Real4(CdfReal4::decode_be(decoder)?)),
-        22 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
-        31 => Ok(CdfType::Epoch(CdfEpoch::decode_be(decoder)?)),
-        32 => Ok(CdfType::Epoch16(CdfEpoch16::decode_be(decoder)?)),
-        33 => Ok(CdfType::TimeTt2000(CdfTimeTt2000::decode_be(decoder)?)),
-        41 => Ok(CdfType::Byte(CdfByte::decode_be(decoder)?)),
-        44 => Ok(CdfType::Real4(CdfReal4::decode_be(decoder)?)),
-        45 => Ok(CdfType::Real8(CdfReal8::decode_be(decoder)?)),
-        51 => Ok(CdfType::Char(CdfChar::decode_be(decoder)?)),
-        52 => Ok(CdfType::Uchar(CdfUchar::decode_be(decoder)?)),
-        e => Err(CdfError::Decode(format!(
-            "Invalid CDF data_type received - {}",
-            e
-        ))),
+impl CdfType {
+    /// Decode a vector of a CdfType whose type is not known at compile time, using big-endian
+    /// encoding.
+    pub fn decode_vec_be<R>(
+        decoder: &mut Decoder<R>,
+        data_type: &CdfInt4,
+        num_elements: &CdfInt4,
+    ) -> Result<Vec<CdfType>, CdfError>
+    where
+        R: io::Read + io::Seek,
+    {
+        macro_rules! get_vec_type {
+            ($cdf_type:ty, $enum_variant:ident) => {{
+                let mut result: Vec<CdfType> = Vec::with_capacity(usize::try_from(**num_elements)?);
+                for _ in 0..**num_elements {
+                    result.push(CdfType::$enum_variant(<$cdf_type>::decode_be(decoder)?));
+                }
+                Ok(result)
+            }};
+        }
+        match **data_type {
+            1 => get_vec_type!(CdfInt1, Int1),
+            2 => get_vec_type!(CdfInt2, Int2),
+            4 => get_vec_type!(CdfInt4, Int4),
+            8 => get_vec_type!(CdfInt8, Int8),
+            11 => get_vec_type!(CdfUint1, Uint1),
+            12 => get_vec_type!(CdfUint2, Uint2),
+            14 => get_vec_type!(CdfUint4, Uint4),
+            21 => get_vec_type!(CdfReal4, Real4),
+            22 => get_vec_type!(CdfReal8, Real8),
+            31 => get_vec_type!(CdfEpoch, Epoch),
+            32 => get_vec_type!(CdfEpoch16, Epoch16),
+            33 => get_vec_type!(CdfTimeTt2000, TimeTt2000),
+            41 => get_vec_type!(CdfByte, Byte),
+            44 => get_vec_type!(CdfReal4, Real4),
+            45 => get_vec_type!(CdfReal8, Real8),
+            51 => {
+                let result = CdfChar::decode_vec_be(decoder, num_elements.clone())?;
+                Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
+            }
+            52 => {
+                let result = CdfChar::decode_vec_be(decoder, num_elements.clone())?;
+                Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
+            }
+            e => Err(CdfError::Decode(format!(
+                "Invalid CDF data_type received - {}",
+                e
+            ))),
+        }
     }
-}
 
-/// Decodes any CDF data type assuming Little-Endian encoding, given its numeric identifier, as defined
-/// in Table 5.9 in the CDF specification.
-/// # Errors
-/// Returns a [`CdfError::Decode`] if the decoding fails for any reason.
-pub fn decode_cdf_type_le<R>(decoder: &mut Decoder<R>, data_type: i32) -> Result<CdfType, CdfError>
-where
-    R: io::Read + io::Seek,
-{
-    match data_type {
-        1 => Ok(CdfType::Int1(CdfInt1::decode_le(decoder)?)),
-        2 => Ok(CdfType::Int2(CdfInt2::decode_le(decoder)?)),
-        4 => Ok(CdfType::Int4(CdfInt4::decode_le(decoder)?)),
-        8 => Ok(CdfType::Int8(CdfInt8::decode_le(decoder)?)),
-        11 => Ok(CdfType::Uint1(CdfUint1::decode_le(decoder)?)),
-        12 => Ok(CdfType::Uint2(CdfUint2::decode_le(decoder)?)),
-        14 => Ok(CdfType::Uint4(CdfUint4::decode_le(decoder)?)),
-        21 => Ok(CdfType::Real4(CdfReal4::decode_le(decoder)?)),
-        22 => Ok(CdfType::Real8(CdfReal8::decode_le(decoder)?)),
-        31 => Ok(CdfType::Epoch(CdfEpoch::decode_le(decoder)?)),
-        32 => Ok(CdfType::Epoch16(CdfEpoch16::decode_le(decoder)?)),
-        33 => Ok(CdfType::TimeTt2000(CdfTimeTt2000::decode_le(decoder)?)),
-        41 => Ok(CdfType::Byte(CdfByte::decode_le(decoder)?)),
-        44 => Ok(CdfType::Real4(CdfReal4::decode_le(decoder)?)),
-        45 => Ok(CdfType::Real8(CdfReal8::decode_le(decoder)?)),
-        51 => Ok(CdfType::Char(CdfChar::decode_le(decoder)?)),
-        52 => Ok(CdfType::Uchar(CdfUchar::decode_le(decoder)?)),
-        e => Err(CdfError::Decode(format!(
-            "Invalid CDF data_type received - {}",
-            e
-        ))),
+    /// Decode a vector of a CdfType whose type is not known at compile time, using little-endian
+    /// encoding.
+    pub fn decode_vec_le<R>(
+        decoder: &mut Decoder<R>,
+        data_type: &CdfInt4,
+        num_elements: &CdfInt4,
+    ) -> Result<Vec<CdfType>, CdfError>
+    where
+        R: io::Read + io::Seek,
+    {
+        macro_rules! get_vec_type {
+            ($cdf_type:ty, $enum_variant:ident) => {{
+                let mut result: Vec<CdfType> = Vec::with_capacity(usize::try_from(**num_elements)?);
+                for _ in 0..**num_elements {
+                    result.push(CdfType::$enum_variant(<$cdf_type>::decode_le(decoder)?));
+                }
+                Ok(result)
+            }};
+        }
+        match **data_type {
+            1 => get_vec_type!(CdfInt1, Int1),
+            2 => get_vec_type!(CdfInt2, Int2),
+            4 => get_vec_type!(CdfInt4, Int4),
+            8 => get_vec_type!(CdfInt8, Int8),
+            11 => get_vec_type!(CdfUint1, Uint1),
+            12 => get_vec_type!(CdfUint2, Uint2),
+            14 => get_vec_type!(CdfUint4, Uint4),
+            21 => get_vec_type!(CdfReal4, Real4),
+            22 => get_vec_type!(CdfReal8, Real8),
+            31 => get_vec_type!(CdfEpoch, Epoch),
+            32 => get_vec_type!(CdfEpoch16, Epoch16),
+            33 => get_vec_type!(CdfTimeTt2000, TimeTt2000),
+            41 => get_vec_type!(CdfByte, Byte),
+            44 => get_vec_type!(CdfReal4, Real4),
+            45 => get_vec_type!(CdfReal8, Real8),
+            51 => {
+                let result = CdfChar::decode_vec_le(decoder, num_elements.clone())?;
+                Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
+            }
+            52 => {
+                let result = CdfChar::decode_vec_le(decoder, num_elements.clone())?;
+                Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
+            }
+            e => Err(CdfError::Decode(format!(
+                "Invalid CDF data_type received - {}",
+                e
+            ))),
+        }
     }
 }
 

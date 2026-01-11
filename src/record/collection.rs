@@ -21,7 +21,7 @@ pub trait RecordList {
 pub fn get_record_vec<R, T>(decoder: &mut Decoder<R>, head: &CdfInt8) -> Result<Vec<T>, CdfError>
 where
     R: io::Read + io::Seek,
-    T: Decodable<Value = T> + RecordList,
+    T: Decodable + RecordList,
 {
     let mut result_vec = vec![];
     let mut next = head.clone();
