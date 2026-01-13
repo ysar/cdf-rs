@@ -117,34 +117,29 @@ impl Decodable for GlobalDescriptorRecord {
             )));
         }
 
-        let mut size_r_dims = vec![CdfInt4::from(0); usize::try_from(*num_r_dims)?];
-        for s in size_r_dims.iter_mut() {
-            // If there are rVariables present, read in their dimensions.
-            *s = CdfInt4::decode_be(decoder)?;
-        }
+        let size_r_dims = CdfInt4::decode_vec_be(decoder, &num_r_dims)?;
+        decoder
+            .context
+            .set_size_dimension_rvariable(size_r_dims.clone());
 
-        let rvdr_vec = if let Some(head) = &rvdr_head {
-            get_record_vec::<R, RVariableDescriptorRecord>(decoder, head)?
-        } else {
-            vec![]
+        let rvdr_vec = match &rvdr_head {
+            Some(head) => get_record_vec::<R, RVariableDescriptorRecord>(decoder, head)?,
+            None => vec![],
         };
 
-        let zvdr_vec = if let Some(head) = &zvdr_head {
-            get_record_vec::<R, ZVariableDescriptorRecord>(decoder, head)?
-        } else {
-            vec![]
+        let zvdr_vec = match &zvdr_head {
+            Some(head) => get_record_vec::<R, ZVariableDescriptorRecord>(decoder, head)?,
+            None => vec![],
         };
 
-        let adr_vec = if let Some(head) = &adr_head {
-            get_record_vec::<R, AttributeDescriptorRecord>(decoder, head)?
-        } else {
-            vec![]
+        let adr_vec = match &adr_head {
+            Some(head) => get_record_vec::<R, AttributeDescriptorRecord>(decoder, head)?,
+            None => vec![],
         };
 
-        let uir_vec = if let Some(head) = &uir_head {
-            get_record_vec::<R, UnusedInternalRecord>(decoder, head)?
-        } else {
-            vec![]
+        let uir_vec = match &uir_head {
+            Some(head) => get_record_vec::<R, UnusedInternalRecord>(decoder, head)?,
+            None => vec![],
         };
 
         Ok(Self {

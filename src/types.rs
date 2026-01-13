@@ -419,11 +419,11 @@ impl CdfType {
             44 => get_vec_type!(CdfReal4, Real4),
             45 => get_vec_type!(CdfReal8, Real8),
             51 => {
-                let result = CdfChar::decode_vec_be(decoder, num_elements.clone())?;
+                let result = CdfChar::decode_vec_be(decoder, num_elements)?;
                 Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
             }
             52 => {
-                let result = CdfChar::decode_vec_be(decoder, num_elements.clone())?;
+                let result = CdfChar::decode_vec_be(decoder, num_elements)?;
                 Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
             }
             e => Err(CdfError::Decode(format!(
@@ -469,11 +469,11 @@ impl CdfType {
             44 => get_vec_type!(CdfReal4, Real4),
             45 => get_vec_type!(CdfReal8, Real8),
             51 => {
-                let result = CdfChar::decode_vec_le(decoder, num_elements.clone())?;
+                let result = CdfChar::decode_vec_le(decoder, num_elements)?;
                 Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
             }
             52 => {
-                let result = CdfChar::decode_vec_le(decoder, num_elements.clone())?;
+                let result = CdfChar::decode_vec_le(decoder, num_elements)?;
                 Ok(vec![CdfType::String(CdfString::from_slice_chars(&result))])
             }
             e => Err(CdfError::Decode(format!(

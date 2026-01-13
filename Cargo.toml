@@ -2,6 +2,13 @@
 name = "cdf"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = ""
+readme = "README.md"
+repository = "https://github.com/ysar/cdf-rs.git"
+exclude = ["examples/*", "benches/*", "tests/*"]
+keywords = ["CDF"]
+categories = ["encoding"]
 
 [dev-dependencies]
 paste = "1.0.15"

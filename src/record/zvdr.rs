@@ -140,10 +140,14 @@ impl Decodable for ZVariableDescriptorRecord {
         let name = CdfString::decode_string_from_numbytes(decoder, 256)?;
 
         let num_z_dims = CdfInt4::decode_be(decoder)?;
-        let mut size_z_dims = Vec::with_capacity(usize::try_from(*num_z_dims)?);
-        for _ in 0..*num_z_dims {
-            size_z_dims.push(CdfInt4::decode_be(decoder)?)
-        }
+        decoder
+            .context
+            .set_num_dimension_zvariable(num_z_dims.clone());
+
+        let size_z_dims = CdfInt4::decode_vec_be(decoder, &num_z_dims)?;
+        decoder
+            .context
+            .set_size_dimension_zvariable(size_z_dims.clone());
 
         let mut dim_variances: Vec<bool> = vec![false; usize::try_from(*num_z_dims)?];
         for d in dim_variances.iter_mut() {

@@ -25,12 +25,12 @@ pub trait Decodable: Sized {
     /// Decode a sequential collection of this type into a vector using big-endian encoding.
     fn decode_vec_be<R>(
         decoder: &mut Decoder<R>,
-        num_elements: CdfInt4,
+        num_elements: &CdfInt4,
     ) -> Result<Vec<Self>, CdfError>
     where
         R: io::Read + io::Seek,
     {
-        let n = usize::try_from(*num_elements)?;
+        let n = usize::try_from(**num_elements)?;
         let mut result: Vec<Self> = Vec::with_capacity(n);
         for _ in 0..n {
             result.push(Self::decode_be(decoder)?);
@@ -41,12 +41,12 @@ pub trait Decodable: Sized {
     /// Decode a sequential collection of this type into a vector using little-endian encoding.
     fn decode_vec_le<R>(
         decoder: &mut Decoder<R>,
-        num_elements: CdfInt4,
+        num_elements: &CdfInt4,
     ) -> Result<Vec<Self>, CdfError>
     where
         R: io::Read + io::Seek,
     {
-        let n = usize::try_from(*num_elements)?;
+        let n = usize::try_from(**num_elements)?;
         let mut result: Vec<Self> = Vec::with_capacity(n);
         for _ in 0..n {
             result.push(Self::decode_le(decoder)?);
@@ -76,12 +76,13 @@ where
     pub fn new(reader: R) -> Result<Self, CdfError> {
         Ok(Decoder {
             reader,
-            context: DecodeContext::empty(),
+            context: DecodeContext::default(),
         })
     }
 }
 
 /// Stores various contextual values read in the CDF that other records depend on for their decoding.
+#[derive(Default)]
 pub struct DecodeContext {
     /// The "encoding" of the values in the CDF. This has to be read in or specified for every
     /// CDF file and is contained in the CDR.
@@ -89,23 +90,21 @@ pub struct DecodeContext {
     /// CDF version.  This is necessary to include in the decoder since different versions have
     /// different formats.
     version: Option<CdfVersion>,
-    /// Number of dimensions of rVariables. This is used by the RVDR.
-    r_num_dims: Option<CdfInt4>,
+    /// Number of dimensions of rVariables. This is used by the rVDR and is global to the CDF.
+    num_r_dims: Option<CdfInt4>,
+    /// Dimension sizes of rVariables. This is used by the rVDR and is global to the CDF.
+    size_r_dims: Option<Vec<CdfInt4>>,
+    /// Number of dimensions of the zVariable that is currently being read. This is set and used
+    /// for the zVDR.
+    num_z_dims: Option<CdfInt4>,
+    /// Dimension sizes of the zVariable that is currently being read. This is set and used for the
+    /// zVDR.
+    size_z_dims: Option<Vec<CdfInt4>>,
     /// Whether variable records are stored in row-major (true) or column-major (false) format.
     row_major: Option<bool>,
 }
 
 impl DecodeContext {
-    /// Create an empty context with nothing specified.
-    pub fn empty() -> Self {
-        Self {
-            encoding: None,
-            version: None,
-            r_num_dims: None,
-            row_major: None,
-        }
-    }
-
     /// Sets the CDF version for this context.
     pub fn set_version(&mut self, version: CdfVersion) {
         self.version = Some(version);
@@ -134,15 +133,51 @@ impl DecodeContext {
         ))
     }
 
-    /// Sets the dimension for rVariables within this CDF file.
+    /// Sets the number of dimensions for rVariables within this CDF file.
     pub fn set_num_dimension_rvariable(&mut self, num_dim: CdfInt4) {
-        self.r_num_dims = Some(num_dim);
+        self.num_r_dims = Some(num_dim);
+    }
+
+    /// Gets the number of dimensions for rVariables within this CDF file.
+    pub fn get_num_dimension_rvariable(&mut self) -> Result<CdfInt4, CdfError> {
+        self.num_r_dims.clone().ok_or(CdfError::Decode(
+            "No rVariable dimension length stored in decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the dimension for rVariables within this CDF file.
+    pub fn set_size_dimension_rvariable(&mut self, size_dim: Vec<CdfInt4>) {
+        self.size_r_dims = Some(size_dim);
     }
 
     /// Gets the dimension for rVariables within this CDF file.
-    pub fn get_num_dimension_rvariable(&mut self) -> Result<CdfInt4, CdfError> {
-        self.r_num_dims.clone().ok_or(CdfError::Decode(
-            "No rVariable dimension length stored in decoding context.".to_string(),
+    pub fn get_size_dimension_rvariable(&mut self) -> Result<Vec<CdfInt4>, CdfError> {
+        self.size_r_dims.clone().ok_or(CdfError::Decode(
+            "No rVariable dimensions stored in decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the number of dimensions for the active zVariable.
+    pub fn set_num_dimension_zvariable(&mut self, num_dim: CdfInt4) {
+        self.num_z_dims = Some(num_dim);
+    }
+
+    /// Gets the number of dimensions for the active zVariable.
+    pub fn get_num_dimension_zvariable(&mut self) -> Result<CdfInt4, CdfError> {
+        self.num_z_dims.clone().ok_or(CdfError::Decode(
+            "No zVariable dimension length stored in decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the dimension for the active zVariable.
+    pub fn set_size_dimension_zvariable(&mut self, size_dim: Vec<CdfInt4>) {
+        self.size_z_dims = Some(size_dim);
+    }
+
+    /// Gets the dimension for the active zVariable.
+    pub fn get_size_dimension_zvariable(&mut self) -> Result<Vec<CdfInt4>, CdfError> {
+        self.size_z_dims.clone().ok_or(CdfError::Decode(
+            "No zVariable dimensions stored in decoding context.".to_string(),
         ))
     }
 

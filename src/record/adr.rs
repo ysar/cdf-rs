@@ -102,16 +102,14 @@ impl Decodable for AttributeDescriptorRecord {
             CdfString::decode_string_from_numbytes(decoder, 256)?
         };
 
-        let agredr_vec = if let Some(head) = &agredr_head {
-            get_record_vec::<R, AttributeGREntryDescriptorRecord>(decoder, head)?
-        } else {
-            vec![]
+        let agredr_vec = match &agredr_head {
+            Some(head) => get_record_vec::<R, AttributeGREntryDescriptorRecord>(decoder, head)?,
+            None => vec![],
         };
 
-        let azedr_vec = if let Some(head) = &azedr_head {
-            get_record_vec::<R, AttributeZEntryDescriptorRecord>(decoder, head)?
-        } else {
-            vec![]
+        let azedr_vec = match &azedr_head {
+            Some(head) => get_record_vec::<R, AttributeZEntryDescriptorRecord>(decoder, head)?,
+            None => vec![],
         };
 
         Ok(AttributeDescriptorRecord {

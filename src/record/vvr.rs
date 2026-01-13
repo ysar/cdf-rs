@@ -50,7 +50,7 @@ pub struct VariableRecord {
 /// Stores the contents of a Variable Values Record.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
-pub struct RVariableValuesRecord {
+pub struct VariableValuesRecord {
     /// The size of this record in bytes.
     pub record_size: CdfInt8,
     /// The type of record as defined in the CDF specfication as an integer.
@@ -66,10 +66,8 @@ pub struct RVariableValuesRecord {
     pub records: Vec<VariableRecord>,
 }
 
-impl Decodable for RVariableValuesRecord {
-    type Value = Self;
-
-    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+impl Decodable for VariableValuesRecord {
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {
@@ -83,46 +81,20 @@ impl Decodable for RVariableValuesRecord {
         }
 
         // Read in the values of this attribute based on the encoding specified in the CDR.
-        let mut value: Vec<CdfType> = Vec::with_capacity(usize::try_from(*num_elements)?);
         let endianness = decoder.context.get_encoding()?.get_endian()?;
-
-        match endianness {
-            Endian::Big => {
-                for _ in 0..*num_elements {
-                    value.push(decode_cdf_type_be(decoder, *data_type)?);
-                }
-            }
-            Endian::Little => {
-                for _ in 0..*num_elements {
-                    value.push(decode_cdf_type_le(decoder, *data_type)?);
-                }
-            }
-        }
-
-        // If the type for value is Vec<CdfType::char>, it is better to convert to a Vec<CdfString>
-        // Ideally we would want something like impl Iterator here instead ? Maybe?
-        let value = if let CdfType::Char(_) = value[0].clone() {
-            let chars: Vec<CdfChar> = value
-                .into_iter()
-                .flat_map(|v| match v {
-                    CdfType::Char(c) => Some(c),
-                    _ => None,
-                })
-                .collect();
-
-            vec![CdfType::String(CdfString::from_slice_chars(&chars))]
-        } else {
-            value
+        let records = match endianness {
+            Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
+            Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
         };
 
-        Ok(RVariableValuesRecord {
+        Ok(VariableValuesRecord {
             record_size,
             record_type,
-            value,
+            records,
         })
     }
 
-    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self::Value, CdfError>
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
         R: io::Read + io::Seek,
     {

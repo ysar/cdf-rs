@@ -21,16 +21,27 @@ manner.  A CDF file allows for data and attributes to have different endianness,
 file.  So, it might be complicated and this is not a priority at the moment.
 
 ## Usage
+
+Install by adding `cdf` to `Cargo.toml` or using `cargo`.
+
+```shell
+$ cargo add cdf
+```
+Or, if you want to derive `serde::Serialize` and `serde::Deserialize`,
+```shell
+$ cargo add cdf --features serde
+```
+
 `cdf-rs` decodes the CDF file in a heirarchical manner by recursively calling `decode_*` on each 
 constituent. Calling the top-level `Cdf::read_cdf_file` function is the easiest.
-This reads in the entire content of the CDF file.
+This reads in the contents of the CDF file into one struct representative of the CDF data model.
 
 ```rust,ignore
 let cdf = Cdf::read_cdf_file(PathBuf::from("examples/data/test_alltypes.cdf")).unwrap();
 ```
 ## Dependencies
-By default `cdf-rs` has no dependencies (as of yet). If you want `serde` support, you need to enable
-the `serde` feature.
+By default `cdf-rs` has no dependencies (as of yet). `serde` support is optional and for that you 
+need to enable the `serde` feature.
 
 ## The CDF data model
 
@@ -45,44 +56,51 @@ The CDF format is heirarchical and `cdf-rs` makes use of this to deserialize (an
 - Arrows indicate the presence of file-offset pointer. Think of `|` and `-->` as "points to".
 - Some records point to another record of the same type, creating a linked-list.
 - The VXR is the only record that can point to a lower-level VXR.
+- The Variable Values Record points to a group of contiguous variable records. Any variable can use
+several VXRs that can each contain several VVRs (or several VXRs). 
+- The variable records are not deserialized with the VXRs because they need a lot of contextual 
+information that is difficult to pass around from one `decode` method to another.  Instead, all 
+proper CDF records are read first, and the Variable Records are added later.
 
 ```text
-CDR 
-|
-|---> GDR
-      |
-      | --> rVDR --> rVDR --> ... rVDR        (for each rVariable)
-      |     |
-      |     |--> VXR --> VXR ... VXR 
-      |          |
-      |          |--> VVR
-      |          |  
-      |          |--> CVVR
-      |          | 
-      |          |--> VXR --> VXR ... 
-      |               | ...
-      |
-      | --> zVDR --> zVDR --> ... zVDR        (for each zVariable)
-      |     |
-      |     |--> VXR --> VXR ... VXR 
-      |          |
-      |          |--> VVR
-      |          |  
-      |          |--> CVVR
-      |          | 
-      |          |--> VXR --> VXR ... 
-      |               | ...
-      |
-      | --> ADR  --> ADR  --> ... ADR         (for each attribute)
-      |     |
-      |     |--> AGREDR --> AGREDR --> ... AGREDR 
-      |     | 
-      |     |--> AZEDR  --> AZEDR  --> ... AZEDR 
-      |
-      | --> UIR  --> UIR  --> ... UIR
+CDR                                                            Variable Records
+|                                                              |
+| --> GDR                                                      |
+      |             (for each rVariable)                       |  
+      | --> rVDR --> rVDR --> ... rVDR                         |
+      |     |                                            |---> | #11
+      |     |--> VXR --> VXR ... VXR                     |     |
+      |          |                                       |     |
+      |          |--> VVR -------------------------------|     |
+      |          |                                       |     |
+      |          |--> CVVR                               |     |
+      |          |                                       |---> | #17
+      |          |--> VXR --> VXR ...                    +     |
+      |               | ...                              ...   |
+      |                                                        |
+      |             (for each zVariable)                       |
+      | --> zVDR --> zVDR --> ... zVDR                         |
+      |     |                                            |---> | #4123
+      |     |--> VXR --> VXR ... VXR                     |     |
+      |          |                                       |     |
+      |          |--> VVR -------------------------------|     |
+      |          |                                       |---> | #4127
+      |          |--> CVVR                               +     |
+      |          |                                       ...   |
+      |          |--> VXR --> VXR ...                          |
+      |               | ...                                    |
+      |                                                        |
+      |             (for each attribute)                       |
+      | --> ADR  --> ADR  --> ... ADR                          |
+      |     |                                                  |
+      |     |--> AGREDR --> AGREDR --> ... AGREDR              |
+      |     |                                                  |
+      |     |--> AZEDR  --> AZEDR  --> ... AZEDR               |
+      |                                                        |
+      | --> UIR  --> UIR  --> ... UIR                          |
 ```
 
-# Using cdf-rs with serde 
+## Using cdf-rs with serde 
 In a way, `cdf-rs` mimics `serde`'s strategy by creating its own data model via types that wrap 
 around native Rust types.  In addition, nearly all "CdfTypes" implement `serde::Serialize` and 
 `serde::Deserialize` and can be used, for example, to store the contents of the CDF file into a 
@@ -99,7 +117,7 @@ _____________      ________|_________      ____________________      ___________
                    |________________|
 ```
 
-For example, after enable the `serde` feature, you can use an external crate like `serde_json` to 
+For example, after enabling the `serde` feature, you can use an external crate like `serde_json` to 
 convert previously read CDF data into a JSON string.
 ```rust,ignore
 let cdf_as_json = serde_json::to_string(&cdf).unwrap();
