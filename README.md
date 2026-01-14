@@ -58,9 +58,6 @@ The CDF format is heirarchical and `cdf-rs` makes use of this to deserialize (an
 - The VXR is the only record that can point to a lower-level VXR.
 - The Variable Values Record points to a group of contiguous variable records. Any variable can use
 several VXRs that can each contain several VVRs (or several VXRs). 
-- The variable records are not deserialized with the VXRs because they need a lot of contextual 
-information that is difficult to pass around from one `decode` method to another.  Instead, all 
-proper CDF records are read first, and the Variable Records are added later.
 
 ```text
 CDR                                                            Variable Records
