@@ -5,9 +5,7 @@ use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
     repr::Endian,
-    types::{
-        decode_cdf_type_be, decode_cdf_type_le, CdfChar, CdfInt4, CdfInt8, CdfString, CdfType,
-    },
+    types::{CdfInt4, CdfInt8, CdfType},
 };
 use std::io;
 
@@ -39,12 +37,44 @@ use std::io;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub struct VariableRecord {
-    data_type: CdfInt4,
-    num_elements: CdfInt4,
-    num_dims: CdfInt4,
-    size_dims: Vec<CdfInt4>,
-    dim_variances: Vec<bool>,
-    data: Vec<CdfType>,
+    /// Integer identifier for the data type stored in this variable record as per the spec.
+    pub data_type: CdfInt4,
+    /// Number of data of type `data_type` stored in this record.
+    pub data_len: CdfInt4,
+    /// The actual data stored in this variable record.
+    pub data: Vec<CdfType>,
+}
+
+impl Decodable for VariableRecord {
+    fn decode_be<R>(decoder: &mut Decoder<R>) -> Result<Self, CdfError>
+    where
+        R: io::Read + io::Seek,
+    {
+        let data_type = decoder.context.get_var_data_type()?;
+        let data_len = decoder.context.get_var_data_len()?;
+
+        // Read in the values of this attribute based on the encoding specified in the CDR.
+        let endianness = decoder.context.get_encoding()?.get_endian()?;
+        let data = match endianness {
+            Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &data_len)?,
+            Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &data_len)?,
+        };
+
+        Ok(VariableRecord {
+            data_type: data_type.clone(),
+            data_len: data_len.clone(),
+            data,
+        })
+    }
+
+    fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
+    where
+        R: std::io::Read + std::io::Seek,
+    {
+        unreachable!(
+            "Little-endian decoding is not supported for records, only for values within records."
+        )
+    }
 }
 
 /// Stores the contents of a Variable Values Record.
@@ -62,7 +92,7 @@ pub struct VariableValuesRecord {
     /// The attributes corresponding to these variables are stored in the AGREDR (for rVariables)
     /// and in the AZEDR (for zVariables).
     /// The number of records is the product of the number of elements in each record times the
-    ///
+    /// product of sizes of all actively stored dimensions.
     pub records: Vec<VariableRecord>,
 }
 
@@ -73,19 +103,19 @@ impl Decodable for VariableValuesRecord {
     {
         let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
-        if *record_type != -1 {
+        if *record_type != 7 {
             return Err(CdfError::Decode(format!(
-                "Invalid record_type for UIR - expected -1, received {}",
+                "Invalid record_type for VVR - expected 7, received {}",
                 *record_type
             )));
         }
 
-        // Read in the values of this attribute based on the encoding specified in the CDR.
-        let endianness = decoder.context.get_encoding()?.get_endian()?;
-        let records = match endianness {
-            Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
-            Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
-        };
+        let num_records = decoder.context.get_num_records()?;
+
+        let mut records = Vec::with_capacity(num_records);
+        for _ in 0..num_records {
+            records.push(VariableRecord::decode_be(decoder)?);
+        }
 
         Ok(VariableValuesRecord {
             record_size,
@@ -96,9 +126,9 @@ impl Decodable for VariableValuesRecord {
 
     fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>
     where
-        R: io::Read + io::Seek,
+        R: std::io::Read + std::io::Seek,
     {
-        unimplemented!(
+        unreachable!(
             "Little-endian decoding is not supported for records, only for values within records."
         )
     }

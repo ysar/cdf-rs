@@ -162,6 +162,23 @@ impl Decodable for ZVariableDescriptorRecord {
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
         };
 
+        // Before reading in the VXRs, we need to know the variable data type and the number of such
+        // types in each variable record. For zVariables, this is all stored in the zVDR, which is
+        // in scope.
+        let size_active_dims: i32 = dim_variances
+            .iter()
+            .zip(size_z_dims.iter())
+            .filter(|(v, _)| **v)
+            .map(|(_, s)| **s)
+            .product();
+
+        let var_data_len = (*num_elements) * (size_active_dims);
+
+        decoder.context.set_var_data_type(data_type.clone());
+        decoder
+            .context
+            .set_var_data_len(CdfInt4::from(var_data_len));
+
         let vxr_vec = if let Some(head) = &vxr_head {
             get_record_vec::<R, VariableIndexRecord>(decoder, head)?
         } else {

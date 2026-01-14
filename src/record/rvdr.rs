@@ -150,6 +150,28 @@ impl Decodable for RVariableDescriptorRecord {
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
         };
 
+        // Before reading in the VXRs, we need to know the variable data type and the number of such
+        // types in each variable record. For rVariables, this is known from various sources.
+        // The data_type is known from the rVDR, which is in scope.
+        // The num_elements is known from the rVDR, which is in scope.
+        // The size of all actively stored dimensions is known from the GDR. While decoding the
+        // GDR, this relevant information was also stored in the decoder context.
+
+        let size_r_dims = decoder.context.get_size_dimension_rvariable()?;
+        let size_active_dims: i32 = dim_variances
+            .iter()
+            .zip(size_r_dims.iter())
+            .filter(|(v, _)| **v)
+            .map(|(_, s)| **s)
+            .product();
+
+        let var_data_len = (*num_elements) * (size_active_dims);
+
+        decoder.context.set_var_data_type(data_type.clone());
+        decoder
+            .context
+            .set_var_data_len(CdfInt4::from(var_data_len));
+
         let vxr_vec = if let Some(head) = &vxr_head {
             get_record_vec::<R, VariableIndexRecord>(decoder, head)?
         } else {

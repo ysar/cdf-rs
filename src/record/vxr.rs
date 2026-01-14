@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     decode::{decode_version3_int4_int8, Decodable, Decoder},
     error::CdfError,
-    record::{collection::RecordList, cvvr::CompressedVariableValuesRecord},
+    record::{
+        collection::RecordList, cvvr::CompressedVariableValuesRecord, vvr::VariableValuesRecord,
+    },
     types::{CdfInt4, CdfInt8},
 };
 
@@ -83,12 +85,27 @@ impl Decodable for VariableIndexRecord {
         }
 
         let mut children: Vec<Option<VariableIndexRecordChild>> = Vec::with_capacity(n);
-        for (c, o) in children.iter_mut().zip(offset_vec.iter().as_ref()) {
-            if let Some(next) = o {
+        for i in 0..n {
+            if let Some(next) = &offset_vec[i] {
                 _ = decoder
                     .reader
                     .seek(SeekFrom::Start(u64::try_from(**next)?))?;
-                *c = Some(VariableIndexRecordChild::decode_be(decoder)?);
+
+                // Each first and last vec combination gives the number of variable records stored
+                // in this group of this VXR.
+                let num_records = match (&first_vec[i], &last_vec[i]) {
+                    (Some(first), Some(last)) => usize::try_from(**last - **first)
+                        .map_err(|e| CdfError::Decode(e.to_string())),
+                    _ => Err(CdfError::Decode(
+                        "first and last in VXR do not have matching Some value.".to_string(),
+                    )),
+                }?;
+
+                decoder.context.set_num_records(num_records);
+
+                children.push(Some(VariableIndexRecordChild::decode_be(decoder)?));
+            } else {
+                children.push(None)
             }
         }
 
@@ -127,7 +144,7 @@ impl RecordList for VariableIndexRecord {
 #[derive(Debug)]
 pub enum VariableIndexRecordChild {
     /// Contains a Variable Values record.
-    VVR,
+    VVR(VariableValuesRecord),
     /// Contains a Compressed Variable Values record.
     CVVR(CompressedVariableValuesRecord),
     /// Contains a lower-level Variable Index record.
@@ -154,7 +171,9 @@ impl Decodable for VariableIndexRecordChild {
             6 => Ok(VariableIndexRecordChild::VXR(
                 VariableIndexRecord::decode_be(decoder)?,
             )),
-            7 => Ok(VariableIndexRecordChild::VVR),
+            7 => Ok(VariableIndexRecordChild::VVR(
+                VariableValuesRecord::decode_be(decoder)?,
+            )),
             13 => Ok(VariableIndexRecordChild::CVVR(
                 CompressedVariableValuesRecord::decode_be(decoder)?,
             )),

@@ -167,7 +167,7 @@ mod tests {
         let f = File::open(path_test_file)?;
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
-        let cdf = cdf::Cdf::decode_be(&mut decoder)?;
+        let _cdf = cdf::Cdf::decode_be(&mut decoder)?;
         Ok(())
     }
 }

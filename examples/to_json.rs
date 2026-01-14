@@ -34,8 +34,11 @@ fn to_json_from_json(filename: &str) -> Result<(), CdfError> {
 }
 
 fn main() {
-    #[cfg(feature = "serde")]
-    to_json_from_json("ulysses.cdf").unwrap();
+    // `ulysses.cdf` is a pretty large file. Uncomment to convert this to json.
+
+    // #[cfg(feature = "serde")]
+    // to_json_from_json("ulysses.cdf").unwrap();
+
     #[cfg(feature = "serde")]
     to_json_from_json("test_alltypes.cdf").unwrap();
 }

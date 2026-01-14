@@ -383,6 +383,33 @@ pub enum CdfType {
 }
 
 impl CdfType {
+    // /// Size of underlying data_type
+    // pub fn size(data_type: &CdfInt4) -> Result<usize, CdfError> {
+    //     match **data_type {
+    //         1 => Ok(CdfInt1::size()),
+    //         2 => Ok(CdfInt2::size()),
+    //         4 => Ok(CdfInt4::size()),
+    //         8 => Ok(CdfInt8::size()),
+    //         11 => Ok(CdfUint1::size()),
+    //         12 => Ok(CdfUint2::size()),
+    //         14 => Ok(CdfUint4::size()),
+    //         21 => Ok(CdfReal4::size()),
+    //         22 => Ok(CdfReal8::size()),
+    //         31 => Ok(CdfEpoch::size()),
+    //         32 => Ok(CdfEpoch16::size()),
+    //         33 => Ok(CdfTimeTt2000::size()),
+    //         41 => Ok(CdfByte::size()),
+    //         44 => Ok(CdfReal4::size()),
+    //         45 => Ok(CdfReal8::size()),
+    //         51 => Ok(1),
+    //         52 => Ok(1),
+    //         e => Err(CdfError::Decode(format!(
+    //             "Invalid CDF data_type received - {}",
+    //             e
+    //         ))),
+    //     }
+    // }
+
     /// Decode a vector of a CdfType whose type is not known at compile time, using big-endian
     /// encoding.
     pub fn decode_vec_be<R>(

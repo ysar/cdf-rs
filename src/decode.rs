@@ -86,22 +86,29 @@ where
 pub struct DecodeContext {
     /// The "encoding" of the values in the CDF. This has to be read in or specified for every
     /// CDF file and is contained in the CDR.
-    encoding: Option<CdfEncoding>,
+    pub encoding: Option<CdfEncoding>,
     /// CDF version.  This is necessary to include in the decoder since different versions have
     /// different formats.
-    version: Option<CdfVersion>,
+    pub version: Option<CdfVersion>,
     /// Number of dimensions of rVariables. This is used by the rVDR and is global to the CDF.
-    num_r_dims: Option<CdfInt4>,
+    pub num_r_dims: Option<CdfInt4>,
     /// Dimension sizes of rVariables. This is used by the rVDR and is global to the CDF.
-    size_r_dims: Option<Vec<CdfInt4>>,
+    pub size_r_dims: Option<Vec<CdfInt4>>,
     /// Number of dimensions of the zVariable that is currently being read. This is set and used
     /// for the zVDR.
-    num_z_dims: Option<CdfInt4>,
+    pub num_z_dims: Option<CdfInt4>,
     /// Dimension sizes of the zVariable that is currently being read. This is set and used for the
     /// zVDR.
-    size_z_dims: Option<Vec<CdfInt4>>,
+    pub size_z_dims: Option<Vec<CdfInt4>>,
+    /// Data type of the currently read variable (either rVariable or zVariable)
+    pub var_data_type: Option<CdfInt4>,
+    /// Number of data of var_data_type in each variable record of the currently read variable (
+    /// either rVariable or zVariable)
+    pub var_data_len: Option<CdfInt4>,
+    /// Number of variable records stored within the current variable values record.
+    pub num_records: Option<usize>,
     /// Whether variable records are stored in row-major (true) or column-major (false) format.
-    row_major: Option<bool>,
+    pub row_major: Option<bool>,
 }
 
 impl DecodeContext {
@@ -186,9 +193,42 @@ impl DecodeContext {
         self.row_major = Some(row_major);
     }
 
+    /// Gets the data type of the currently read variable.
+    pub fn get_var_data_type(&mut self) -> Result<CdfInt4, CdfError> {
+        self.var_data_type.clone().ok_or(CdfError::Decode(
+            "No variable type stored in decoding context.".to_string(),
+        ))
+    }
+    /// Sets the data type of the currently read variable.
+    pub fn set_var_data_type(&mut self, data_type: CdfInt4) {
+        self.var_data_type = Some(data_type);
+    }
+
+    /// Gets the number of data_types in each variable record of the currently read variable.
+    pub fn get_var_data_len(&mut self) -> Result<CdfInt4, CdfError> {
+        self.var_data_len.clone().ok_or(CdfError::Decode(
+            "Number of data_type in VR not stored in decoding context.".to_string(),
+        ))
+    }
+    /// Sets the number of data_types in each variable record of the currently read variable.
+    pub fn set_var_data_len(&mut self, data_type: CdfInt4) {
+        self.var_data_len = Some(data_type);
+    }
+
+    /// Gets the number of variable records stored inside the current variable values record.
+    pub fn get_num_records(&mut self) -> Result<usize, CdfError> {
+        self.num_records.ok_or(CdfError::Decode(
+            "Number of records not stored in decoding context.".to_string(),
+        ))
+    }
+    /// Sets the number of variable records stored inside the current variable values record.
+    pub fn set_num_records(&mut self, num_records: usize) {
+        self.num_records = Some(num_records);
+    }
+
     /// Gets the dimension for rVariables within this CDF file.
     pub fn is_row_major(&mut self) -> Result<bool, CdfError> {
-        self.row_major.clone().ok_or(CdfError::Decode(
+        self.row_major.ok_or(CdfError::Decode(
             "No rVariable dimension length stored in decoding context.".to_string(),
         ))
     }
