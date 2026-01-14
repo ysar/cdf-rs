@@ -2,3 +2,7 @@
 Cargo.lock
 notes.md
 examples/data/*.json
+*.svg
+perf*
+*.pdf
+*.ps
