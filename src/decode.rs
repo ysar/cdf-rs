@@ -1,7 +1,7 @@
 use std::io;
 
 use crate::error::CdfError;
-use crate::repr::{CdfEncoding, CdfVersion};
+use crate::repr::{CdfEncoding, CdfVersion, Endian};
 use crate::types::{CdfInt4, CdfInt8};
 
 /// Trait for decoding a CDF result from a reader.
@@ -87,6 +87,8 @@ pub struct DecodeContext {
     /// The "encoding" of the values in the CDF. This has to be read in or specified for every
     /// CDF file and is contained in the CDR.
     pub encoding: Option<CdfEncoding>,
+    /// The endianness of data stored in this CDF.
+    pub endianness: Option<Endian>,
     /// CDF version.  This is necessary to include in the decoder since different versions have
     /// different formats.
     pub version: Option<CdfVersion>,
@@ -137,6 +139,20 @@ impl DecodeContext {
     pub fn get_encoding(&self) -> Result<CdfEncoding, CdfError> {
         self.encoding.clone().ok_or(CdfError::Decode(
             "No CDF encoding stored in the decoding context.".to_string(),
+        ))
+    }
+
+    /// Sets the encoding for data within this CDF file.
+    pub fn set_endianness(&mut self, endianness: Endian) {
+        self.endianness = Some(endianness);
+    }
+
+    /// Gets the encoding for data within this CDF file.
+    /// # Errors
+    /// Will raise a [`CdfError`] if the encoding is not yet specified.
+    pub fn get_endianness(&self) -> Result<Endian, CdfError> {
+        self.endianness.clone().ok_or(CdfError::Decode(
+            "No endianness stored in the decoding context.".to_string(),
         ))
     }
 

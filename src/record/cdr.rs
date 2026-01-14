@@ -77,6 +77,7 @@ impl Decodable for CdfDescriptorRecord {
 
         // Set the encoding of the decoder using the value read from the CDR.
         decoder.context.set_encoding(encoding.clone());
+        decoder.context.set_endianness(encoding.get_endian()?);
 
         let flags = CdfInt4::decode_be(decoder)?;
         let flags = CdrFlags {

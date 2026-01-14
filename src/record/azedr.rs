@@ -95,7 +95,7 @@ impl Decodable for AttributeZEntryDescriptorRecord {
         }
 
         // Read in the values of this attribute based on the encoding specified in the CDR.
-        let endianness = decoder.context.get_encoding()?.get_endian()?;
+        let endianness = decoder.context.get_endianness()?;
         let value = match endianness {
             Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,

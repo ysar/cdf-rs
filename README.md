@@ -57,7 +57,7 @@ The CDF format is heirarchical and `cdf-rs` makes use of this to deserialize (an
 - Some records point to another record of the same type, creating a linked-list.
 - The VXR is the only record that can point to a lower-level VXR.
 - The Variable Values Record points to a group of contiguous variable records. Any variable can use
-several VXRs that can each contain several VVRs (or several VXRs). 
+  several VXRs that can each contain several VVRs (or several VXRs). 
 
 ```text
 CDR                                                            Variable Records

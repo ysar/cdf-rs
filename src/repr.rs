@@ -115,6 +115,7 @@ impl TryFrom<CdfInt4> for CdfEncoding {
 }
 
 /// Enum to handle different endianess.
+#[derive(Debug, Clone)]
 pub enum Endian {
     /// Big-Endian
     Big,

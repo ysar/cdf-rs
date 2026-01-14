@@ -144,7 +144,7 @@ impl Decodable for RVariableDescriptorRecord {
             }
         }
 
-        let endianness = decoder.context.get_encoding()?.get_endian()?;
+        let endianness = decoder.context.get_endianness()?;
         let pad_value = match endianness {
             Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,

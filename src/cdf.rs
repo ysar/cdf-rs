@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::{self, BufReader};
-use std::path::PathBuf;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -24,7 +23,7 @@ pub struct Cdf {
 
 impl Cdf {
     /// Decode or deserialize a CDF file.
-    pub fn read_cdf_file(file_path: PathBuf) -> Result<Self, CdfError> {
+    pub fn read_cdf_file<P: AsRef<std::path::Path>>(file_path: P) -> Result<Self, CdfError> {
         let f = File::open(file_path)?;
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
@@ -102,7 +101,7 @@ mod tests {
         let f = File::open(path_test_file)?;
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
-        let cdf = Cdf::decode_be(&mut decoder)?;
+        let _cdf = Cdf::decode_be(&mut decoder)?;
         // dbg!(cdf);
         Ok(())
     }

@@ -13,6 +13,14 @@ categories = ["encoding"]
 [dev-dependencies]
 paste = "1.0.15"
 serde_json = "1.0.148"
+criterion = "0.5.1"
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"], optional = true }
+
+[profile.release]
+debug = true
+
+[[bench]]
+name = "bench_cdf"
+harness = false
