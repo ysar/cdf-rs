@@ -35,3 +35,5 @@ impl Display for CdfError {
         }
     }
 }
+
+impl std::error::Error for CdfError {}
