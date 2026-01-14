@@ -20,9 +20,7 @@ for the CDF format include,
 - [`CDFpp`](https://github.com/SciQLop/CDFpp) (C++).
 
 `cdf-rs` is not zero-copy. At the primitive level, there is a call to `from_le_bytes` or 
-`from_be_bytes` on a byte-slice buffer.  Maybe deserializing/decoding can be done in a zero-copy 
-manner.  A CDF file allows for data and attributes to have different endianness, even within one 
-file.  So, it might be complicated and this is not a priority at the moment.
+`from_be_bytes` on a byte-slice buffer.
 
 ## Usage
 
@@ -127,12 +125,22 @@ At the moment, any user that wishes to use this model needs to convert their dat
 model. But that is something we could work on later to simplify.
 
 ## Work in progress
-This is a new project and so will likely go through some revisions during which the API may change.
+This is a new project and so will likely go through some revisions. Some parts of the CDF 
+specification are not currently implemented.
 
 If you are interested in helping, please raise an issue on Github with whatever you'd like to work 
 on.
 
-Currently I am focusing on decoding (parsing) CDFs, since most users are interested in reading CDF 
-files rather than generating them. After the decoding part is done, I will work on the encoding 
-(writing).  Hopefully the encoders are not too difficult to implement by reversing the steps 
-followed while decoding.
+## To-do:
+
+*Short Term*  
+[ ] Handle TimeTt2000, Epoch, and Epoch16 data types appropriately.  
+[ ] Profile and improve performance.  
+[ ] Consolidate tests into one (?)  
+[ ] CDF versions after v3.8.1 support UTF-8 strings.  
+[ ] Simplifying the record structs by removing unused values.  
+
+*Long Term*  
+[ ] Encode / serialize into the CDF format.  
+[ ] Provide a way to easily convert to-from simple data and the CDF data model.  
+[ ] Implement serializing / deserializing of multi-file CDFs.
