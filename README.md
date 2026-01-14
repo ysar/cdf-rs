@@ -1,8 +1,8 @@
 # cdf-rs
 
-[![Crate](https://img.shields.io/crates/v/cdf-rs)](https://crates.io/crates/cdf-rs)
+[![Crate](https://img.shields.io/crates/v/cdf)](https://crates.io/crates/cdf)
 [![Build](https://github.com/ysar/cdf-rs/actions/workflows/build.yml/badge.svg)](https://github.com/ysar/cdf-rs/actions/workflows/build.yml)
-[![Documentation](https://img.shields.io/docsrs/cdf-rs/latest)](https://docs.rs/cdf-rs/latest/cdf-rs/)
+[![Documentation](https://img.shields.io/docsrs/cdf/latest)](https://docs.rs/cdf/latest/cdf/)
 
 This is a standalone Rust library to parse and write to files written in NASA's Common Data 
 Format ([CDF](https://cdf.gsfc.nasa.gov)), which is different from UCAR's 
