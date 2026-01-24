@@ -1,9 +1,9 @@
 [package]
 name = "cdf"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
-description = "Rust library for working with the NASA CDF format."
+description = "Rust library for decoding and encoding NASA CDF files."
 readme = "README.md"
 repository = "https://github.com/ysar/cdf-rs.git"
 exclude = ["examples/*", "benches/*", "tests/*", ".github/*"]
