@@ -56,7 +56,7 @@ impl Decodable for AttributeDescriptorRecord {
     where
         R: io::Read + io::Seek,
     {
-        let cdf_version = decoder.context.get_version()?;
+        let cdf_version = decoder.context.version()?;
 
         let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;

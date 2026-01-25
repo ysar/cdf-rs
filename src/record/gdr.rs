@@ -66,7 +66,7 @@ impl Decodable for GlobalDescriptorRecord {
     where
         R: io::Read + io::Seek,
     {
-        let cdf_version = decoder.context.get_version()?;
+        let cdf_version = decoder.context.version()?;
 
         let record_size = decode_version3_int4_int8(decoder)?;
         let record_type = CdfInt4::decode_be(decoder)?;
@@ -92,9 +92,7 @@ impl Decodable for GlobalDescriptorRecord {
         let max_rvar = CdfInt4::decode_be(decoder)?;
 
         let num_r_dims = CdfInt4::decode_be(decoder)?;
-        decoder
-            .context
-            .set_num_dimension_rvariable(num_r_dims.clone());
+        decoder.context.num_r_dims = Some(num_r_dims.clone());
 
         let num_zvars = CdfInt4::decode_be(decoder)?;
         let uir_head = decode_version3_int4_int8(decoder).map(|v| (*v != 0).then_some(v))?;
@@ -118,9 +116,7 @@ impl Decodable for GlobalDescriptorRecord {
         }
 
         let size_r_dims = CdfInt4::decode_vec_be(decoder, &num_r_dims)?;
-        decoder
-            .context
-            .set_size_dimension_rvariable(size_r_dims.clone());
+        decoder.context.size_r_dims = Some(size_r_dims.clone());
 
         let rvdr_vec = match &rvdr_head {
             Some(head) => get_record_vec::<R, RVariableDescriptorRecord>(decoder, head)?,

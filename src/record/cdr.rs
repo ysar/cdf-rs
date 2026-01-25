@@ -76,8 +76,8 @@ impl Decodable for CdfDescriptorRecord {
         let encoding: CdfEncoding = CdfInt4::decode_be(decoder)?.try_into()?;
 
         // Set the encoding of the decoder using the value read from the CDR.
-        decoder.context.set_encoding(encoding.clone());
-        decoder.context.set_endianness(encoding.get_endian()?);
+        decoder.context.encoding = Some(encoding.clone());
+        decoder.context.endianness = Some(encoding.get_endian()?);
 
         let flags = CdfInt4::decode_be(decoder)?;
         let flags = CdrFlags {
@@ -87,7 +87,7 @@ impl Decodable for CdfDescriptorRecord {
             md5_checksum: *flags & 8i32 == 8,
         };
 
-        decoder.context.set_row_majority(flags.row_major);
+        decoder.context.row_major = Some(flags.row_major);
 
         let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
@@ -113,7 +113,7 @@ impl Decodable for CdfDescriptorRecord {
         );
 
         // Save the CDF version inside the decoder context for later use.
-        decoder.context.set_version(cdf_version.clone());
+        decoder.context.version = Some(cdf_version.clone());
 
         let identifier = CdfInt4::decode_be(decoder)?;
         let rfu_e = CdfInt4::decode_be(decoder)?;

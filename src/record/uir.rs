@@ -44,7 +44,7 @@ impl Decodable for UnusedInternalRecord {
 
         // Read the remainder data.
         // prior to v3.0 there were no 8-byte ints.
-        let num_data = if decoder.context.get_version()?.major < 3 {
+        let num_data = if decoder.context.version()?.major < 3 {
             usize::try_from(*record_size)? - 16
         } else {
             usize::try_from(*record_size)? - 28
@@ -106,7 +106,7 @@ impl Decodable for UnsociableUnusedInternalRecord {
 
         // Read the remainder data.
         // prior to v3.0 there were no 8-byte ints.
-        let num_data = if decoder.context.get_version()?.major < 3 {
+        let num_data = if decoder.context.version()?.major < 3 {
             usize::try_from(*record_size)? - 8
         } else {
             usize::try_from(*record_size)? - 12

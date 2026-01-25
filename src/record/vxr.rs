@@ -101,7 +101,7 @@ impl Decodable for VariableIndexRecord {
                     )),
                 }?;
 
-                decoder.context.set_num_records(num_records);
+                decoder.context.num_records = Some(num_records);
 
                 children.push(Some(VariableIndexRecordChild::decode_be(decoder)?));
             } else {
@@ -161,7 +161,7 @@ impl Decodable for VariableIndexRecordChild {
         let record_type = CdfInt4::decode_be(decoder)?;
 
         // We peeked, so now we seek back.
-        if decoder.context.get_version()?.major >= 3 {
+        if decoder.context.version()?.major >= 3 {
             decoder.reader.seek_relative(-12)?;
         } else {
             decoder.reader.seek_relative(-8)?;
@@ -222,12 +222,16 @@ mod tests {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new(reader)?;
         let cdf = cdf::Cdf::decode_be(&mut decoder)?;
-        for vdr in cdf.cdr.gdr.rvdr_vec.iter() {
-            assert_eq!(vdr.vxr_vec.len(), *cdf.cdr.gdr.num_rvars as usize);
-        }
-        for vdr in cdf.cdr.gdr.zvdr_vec.iter() {
-            assert_eq!(vdr.vxr_vec.len(), *cdf.cdr.gdr.num_zvars as usize);
-        }
+        // CAUTION: This is not a good test. The VXR length and num_zvars
+        // are not necessarily the same length.
+
+        // for vdr in cdf.cdr.gdr.rvdr_vec.iter() {
+        //     assert_eq!(vdr.vxr_vec.len(), *cdf.cdr.gdr.num_rvars as usize);
+        // }
+
+        // for vdr in cdf.cdr.gdr.zvdr_vec.iter() {
+        //     assert_eq!(vdr.vxr_vec.len(), *cdf.cdr.gdr.num_zvars as usize);
+        // }
 
         // if !cdf.rvxr_vec.is_empty() {
         //     dbg!(cdf.rvxr_vec);

@@ -49,7 +49,7 @@ impl Decodable for Cdf {
             0x0000ffff => CdfVersion::new(2, 0, 0),
             v => return Err(CdfError::Decode(format!("Invalid magic number - {v}"))),
         };
-        decoder.context.set_version(version);
+        decoder.context.version = Some(version);
 
         let is_compressed: bool = match m2.into() {
             0x0000ffffu32 => false,

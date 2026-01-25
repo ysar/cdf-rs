@@ -38,9 +38,14 @@ $ cargo add cdf --features serde
 constituent. Calling the top-level `Cdf::read_cdf_file` function is the easiest.
 This reads in the contents of the CDF file into one struct representative of the CDF data model.
 
-```rust,ignore
-let cdf = Cdf::read_cdf_file(PathBuf::from("examples/data/test_alltypes.cdf")).unwrap();
+```rust
+use cdf::cdf::Cdf;
+
+fn main() {
+    let cdf_contents = Cdf::read_cdf_file("examples/data/test_alltypes.cdf").unwrap();
+}
 ```
+
 ## Dependencies
 By default `cdf-rs` has no dependencies (as of yet). `serde` support is optional and for that you 
 need to enable the `serde` feature.
@@ -117,10 +122,27 @@ _____________      ________|_________      ____________________      ___________
 ```
 
 For example, after enabling the `serde` feature, you can use an external crate like `serde_json` to 
-convert previously read CDF data into a JSON string.
-```rust,ignore
-let cdf_as_json = serde_json::to_string(&cdf).unwrap();
+convert previously read CDF data into a JSON string that is stored into a .json file.
+
+```rust
+// This example will only compile with the `serde` feature enabled.
+#![cfg(feature = "serde")]
+use cdf::{cdf::Cdf, error::CdfError};
+use std::{fs::File, io::Write};
+
+fn main() -> Result<(), CdfError> {
+    
+    let cdf_contents = Cdf::read_cdf_file("examples/data/test_alltypes.cdf")?;
+
+    let json_str = serde_json::to_string_pretty(&cdf_contents)
+        .map_err(|err| CdfError::Other(err.to_string()))?;
+
+    let mut buffer = File::create("examples/data/test_alltypes.json")?;
+    write!(buffer, "{}", json_str)?;
+    Ok(())
+}
 ```
+
 At the moment, any user that wishes to use this model needs to convert their data into the CDF data 
 model. But that is something we could work on later to simplify.
 
@@ -134,6 +156,7 @@ on.
 ## To-do:
 
 *Short Term*  
+[ ] A proper test for the VXR and VVR.
 [ ] Handle TimeTt2000, Epoch, and Epoch16 data types appropriately.  
 [ ] Profile and improve performance.  
 [ ] Consolidate tests into one (?)  

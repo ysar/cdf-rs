@@ -136,7 +136,7 @@ impl Decodable for RVariableDescriptorRecord {
 
         let name = CdfString::decode_string_from_numbytes(decoder, 256)?;
 
-        let num_r_dims = *decoder.context.get_num_dimension_rvariable()?;
+        let num_r_dims = *decoder.context.num_r_dims()?;
         let mut dim_variances: Vec<bool> = vec![false; usize::try_from(num_r_dims)?];
         for d in dim_variances.iter_mut() {
             if *CdfInt4::decode_be(decoder)? == -1 {
@@ -144,7 +144,7 @@ impl Decodable for RVariableDescriptorRecord {
             }
         }
 
-        let endianness = decoder.context.get_endianness()?;
+        let endianness = decoder.context.endianness()?;
         let pad_value = match endianness {
             Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
@@ -157,7 +157,7 @@ impl Decodable for RVariableDescriptorRecord {
         // The size of all actively stored dimensions is known from the GDR. While decoding the
         // GDR, this relevant information was also stored in the decoder context.
 
-        let size_r_dims = decoder.context.get_size_dimension_rvariable()?;
+        let size_r_dims = decoder.context.size_r_dims()?;
         let size_active_dims: i32 = dim_variances
             .iter()
             .zip(size_r_dims.iter())
@@ -167,10 +167,8 @@ impl Decodable for RVariableDescriptorRecord {
 
         let var_data_len = (*num_elements) * (size_active_dims);
 
-        decoder.context.set_var_data_type(data_type.clone());
-        decoder
-            .context
-            .set_var_data_len(CdfInt4::from(var_data_len));
+        decoder.context.var_data_type = Some(data_type.clone());
+        decoder.context.var_data_len = Some(CdfInt4::from(var_data_len));
 
         let vxr_vec = if let Some(head) = &vxr_head {
             get_record_vec::<R, VariableIndexRecord>(decoder, head)?

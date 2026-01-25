@@ -140,14 +140,10 @@ impl Decodable for ZVariableDescriptorRecord {
         let name = CdfString::decode_string_from_numbytes(decoder, 256)?;
 
         let num_z_dims = CdfInt4::decode_be(decoder)?;
-        decoder
-            .context
-            .set_num_dimension_zvariable(num_z_dims.clone());
+        decoder.context.num_z_dims = Some(num_z_dims.clone());
 
         let size_z_dims = CdfInt4::decode_vec_be(decoder, &num_z_dims)?;
-        decoder
-            .context
-            .set_size_dimension_zvariable(size_z_dims.clone());
+        decoder.context.size_z_dims = Some(size_z_dims.clone());
 
         let mut dim_variances: Vec<bool> = vec![false; usize::try_from(*num_z_dims)?];
         for d in dim_variances.iter_mut() {
@@ -156,7 +152,7 @@ impl Decodable for ZVariableDescriptorRecord {
             }
         }
 
-        let endianness = decoder.context.get_endianness()?;
+        let endianness = decoder.context.endianness()?;
         let pad_value = match endianness {
             Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
@@ -174,10 +170,8 @@ impl Decodable for ZVariableDescriptorRecord {
 
         let var_data_len = (*num_elements) * (size_active_dims);
 
-        decoder.context.set_var_data_type(data_type.clone());
-        decoder
-            .context
-            .set_var_data_len(CdfInt4::from(var_data_len));
+        decoder.context.var_data_type = Some(data_type.clone());
+        decoder.context.var_data_len = Some(CdfInt4::from(var_data_len));
 
         let vxr_vec = if let Some(head) = &vxr_head {
             get_record_vec::<R, VariableIndexRecord>(decoder, head)?

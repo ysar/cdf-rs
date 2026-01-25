@@ -50,11 +50,11 @@ impl Decodable for VariableRecord {
     where
         R: io::Read + io::Seek,
     {
-        let data_type = decoder.context.get_var_data_type()?;
-        let data_len = decoder.context.get_var_data_len()?;
+        let data_type = decoder.context.var_data_type()?;
+        let data_len = decoder.context.var_data_len()?;
 
         // Read in the values of this attribute based on the encoding specified in the CDR.
-        let endianness = decoder.context.get_endianness()?;
+        let endianness = decoder.context.endianness()?;
         let data = match endianness {
             Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &data_len)?,
             Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &data_len)?,
@@ -110,7 +110,7 @@ impl Decodable for VariableValuesRecord {
             )));
         }
 
-        let num_records = decoder.context.get_num_records()?;
+        let num_records = decoder.context.num_records()?;
 
         let mut records = Vec::with_capacity(num_records);
         for _ in 0..num_records {

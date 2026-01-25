@@ -53,7 +53,7 @@ impl Decodable for CompressedCdfRecord {
 
         // Read the compressed data.
         // prior to v3.0 there were no 8-byte ints.
-        let num_data = if decoder.context.get_version()?.major < 3 {
+        let num_data = if decoder.context.version()?.major < 3 {
             usize::try_from(*record_size)? - 20
         } else {
             usize::try_from(*record_size)? - 32
