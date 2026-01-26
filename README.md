@@ -156,7 +156,7 @@ on.
 ## To-do:
 
 *Short Term*  
-[ ] A proper test for the VXR and VVR.
+[ ] A proper test for the VXR and VVR.  
 [ ] Handle TimeTt2000, Epoch, and Epoch16 data types appropriately.  
 [ ] Profile and improve performance.  
 [ ] Consolidate tests into one (?)  
