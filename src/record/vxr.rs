@@ -94,7 +94,7 @@ impl Decodable for VariableIndexRecord {
                 // Each first and last vec combination gives the number of variable records stored
                 // in this group of this VXR.
                 let num_records = match (&first_vec[i], &last_vec[i]) {
-                    (Some(first), Some(last)) => usize::try_from(**last - **first)
+                    (Some(first), Some(last)) => usize::try_from(**last - **first + 1)
                         .map_err(|e| CdfError::Decode(e.to_string())),
                     _ => Err(CdfError::Decode(
                         "first and last in VXR do not have matching Some value.".to_string(),
