@@ -67,46 +67,46 @@ The CDF format is heirarchical and `cdf-rs` makes use of this to deserialize (an
   several VXRs that can each contain several VVRs (or several VXRs). 
 
 ```text
-CDR                                                            Variable Records
-|                                                              |
-| --> GDR                                                      |
-      |             (for each rVariable)                       |  
-      | --> rVDR --> rVDR --> ... rVDR                         |
-      |     |                                            |---> | #11
-      |     |--> VXR --> VXR ... VXR                     |     |
-      |          |                                       |     |
-      |          |--> VVR -------------------------------|     |
-      |          |                                       |     |
-      |          |--> CVVR                               |     |
-      |          |                                       |---> | #17
-      |          |--> VXR --> VXR ...                    +     |
-      |               | ...                              ...   |
-      |                                                        |
-      |             (for each zVariable)                       |
-      | --> zVDR --> zVDR --> ... zVDR                         |
-      |     |                                            |---> | #4123
-      |     |--> VXR --> VXR ... VXR                     |     |
-      |          |                                       |     |
-      |          |--> VVR -------------------------------|     |
-      |          |                                       |---> | #4127
-      |          |--> CVVR                               +     |
-      |          |                                       ...   |
-      |          |--> VXR --> VXR ...                          |
-      |               | ...                                    |
-      |                                                        |
-      |             (for each attribute)                       |
-      | --> ADR  --> ADR  --> ... ADR                          |
-      |     |                                                  |
-      |     |--> AGREDR --> AGREDR --> ... AGREDR              |
-      |     |                                                  |
-      |     |--> AZEDR  --> AZEDR  --> ... AZEDR               |
-      |                                                        |
-      | --> UIR  --> UIR  --> ... UIR                          |
+CDR
+│                                                      
+│─➔ GDR                                               
+     │             (for each rVariable)               
+     ├─➔ rVDR ─➔ rVDR ─➔ ... rVDR                    
+     │     │                                          
+     │     ├─➔ VXR ─➔ VXR ... VXR                     
+     │          │                                    
+     │          ├─➔ VVR  ────➔   | Contiguous range of Variable Records 
+     │          │                                    
+     │          ├─➔ CVVR                              
+     │          │                                     
+     │          ├─➔ VXR ─➔ VXR ...                    
+     │               │ ...                            
+     │                                                
+     │             (for each zVariable)               
+     ├─➔ zVDR ─➔ zVDR ─➔ ... zVDR                    
+     │     │                                          
+     │     ├─➔ VXR ─➔ VXR ... VXR                     
+     │          │                                    
+     │          ├─➔ VVR  ────➔   | Contiguous range of Variable Records 
+     │          │                                    
+     │          ├─➔ CVVR                              
+     │          │                                     
+     │          ├─➔ VXR ─➔ VXR ...                    
+     │               │ ...                            
+     │                                                
+     │             (for each attribute)               
+     ├─➔ ADR  ─➔ ADR  ─➔ ... ADR                     
+     │     │                                          
+     │     ├─➔ AGREDR ─➔ AGREDR ─➔ ... AGREDR        
+     │     │                                          
+     │     ├─➔ AZEDR  ─➔ AZEDR  ─➔ ... AZEDR         
+     │                                                
+     └─➔ UIR  ─➔ UIR  ─➔ ... UIR                     
 ```
 
 ## Using cdf-rs with serde 
-In a way, `cdf-rs` mimics `serde`'s strategy by creating its own data model via types that wrap 
-around native Rust types.  In addition, nearly all "CdfTypes" implement `serde::Serialize` and 
+In a way, `cdf-rs` mimics `serde`'s strategy by creatin model via types that wrap 
+around native Rust types.  In addition, nearly all "Cdfnt `serde::Serialize` and 
 `serde::Deserialize` and can be used, for example, to store the contents of the CDF file into a 
 JSON file, or any other format that has `serde` support.
 
@@ -143,27 +143,26 @@ fn main() -> Result<(), CdfError> {
 }
 ```
 
-At the moment, any user that wishes to use this model needs to convert their data into the CDF data 
-model. But that is something we could work on later to simplify.
+Tip: Try opening the resulting JSON file using a tool like [`jless`](https://github.com/PaulJuliusMartinez/jless).
+It is a nice way to visualize the CDF structure.
 
 ## Work in progress
 This is a new project and so will likely go through some revisions. Some parts of the CDF 
 specification are not currently implemented.
 
 If you are interested in helping, please raise an issue on Github with whatever you'd like to work 
-on.
+on.  
 
-## To-do:
-
-*Short Term*  
+*Short-Term Goals*  
+[ ] Improve the VXR and VVR decoding, either by providing a higher-level API to deal with the messy
+ nestedness, or do away with nestedness while deserializing.  
 [ ] A proper test for the VXR and VVR.  
 [ ] Handle TimeTt2000, Epoch, and Epoch16 data types appropriately.  
-[ ] Profile and improve performance.  
-[ ] Consolidate tests into one (?)  
 [ ] CDF versions after v3.8.1 support UTF-8 strings.  
 [ ] Simplifying the record structs by removing unused values.  
+[ ] Profile and improve performance.  
 
-*Long Term*  
+*Long-Term Goals*  
 [ ] Encode / serialize into the CDF format.  
 [ ] Provide a way to easily convert to-from simple data and the CDF data model.  
 [ ] Implement serializing / deserializing of multi-file CDFs.
