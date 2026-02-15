@@ -10,20 +10,6 @@ use crate::{
 };
 use std::io;
 
-/// Flags pertaining to this CDF file.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, PartialEq)]
-pub struct CdrFlags {
-    /// Whether this is row_major (true) or column-major (false)
-    pub row_major: bool,
-    /// Whether this is a single file CDF, as opposed to multi-file CDFs.
-    pub single_file: bool,
-    /// Whether this CDF file has a checksum.
-    pub has_checksum: bool,
-    /// Whether the checksum is an MD5 checksum.
-    pub md5_checksum: bool,
-}
-
 /// The CDF Descriptor Record is present in all CDF files at a file offset of 8-bytes and contains
 /// general information about the CDF.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -39,8 +25,14 @@ pub struct CdfDescriptorRecord {
     pub cdf_version: CdfVersion,
     /// The encoding for data stored inside this CDF.
     pub encoding: CdfEncoding,
-    /// Flags holds information on different options for this file.
-    pub flags: CdrFlags,
+    /// Whether this is row_major (true) or column-major (false)
+    pub row_major: bool,
+    /// Whether this is a single file CDF, as opposed to multi-file CDFs.
+    pub single_file: bool,
+    /// Whether this CDF file has a checksum.
+    pub has_checksum: bool,
+    /// Whether the checksum is an MD5 checksum.
+    pub md5_checksum: bool,
     /// A value reserved for future use.
     pub rfu_a: CdfInt4,
     /// A value reserved for future use.
@@ -80,14 +72,12 @@ impl Decodable for CdfDescriptorRecord {
         decoder.context.endianness = Some(encoding.get_endian()?);
 
         let flags = CdfInt4::decode_be(decoder)?;
-        let flags = CdrFlags {
-            row_major: *flags & 1i32 == 1,
-            single_file: *flags & 2i32 == 2,
-            has_checksum: *flags & 4i32 == 4,
-            md5_checksum: *flags & 8i32 == 8,
-        };
+        let row_major = *flags & 1i32 == 1;
+        let single_file = *flags & 2i32 == 2;
+        let has_checksum = *flags & 4i32 == 4;
+        let md5_checksum = *flags & 8i32 == 8;
 
-        decoder.context.row_major = Some(flags.row_major);
+        decoder.context.row_major = Some(row_major);
 
         let rfu_a = CdfInt4::decode_be(decoder)?;
         if *rfu_a != 0 {
@@ -131,7 +121,10 @@ impl Decodable for CdfDescriptorRecord {
             gdr_offset,
             cdf_version,
             encoding,
-            flags,
+            row_major,
+            single_file,
+            has_checksum,
+            md5_checksum,
             rfu_a,
             rfu_b,
             identifier,
@@ -173,12 +166,7 @@ mod tests {
             320,
             CdfVersion::new(3, 8, 1),
             CdfEncoding::IbmPc,
-            CdrFlags {
-                row_major: true,
-                single_file: true,
-                has_checksum: true,
-                md5_checksum: true,
-            },
+            &[true, true, true, true],
             143,
         )?;
 
@@ -188,12 +176,7 @@ mod tests {
             312,
             CdfVersion::new(2, 5, 22),
             CdfEncoding::Network,
-            CdrFlags {
-                row_major: true,
-                single_file: true,
-                has_checksum: false,
-                md5_checksum: false,
-            },
+            &[true, true, false, false],
             240,
         )?;
         Ok(())
@@ -205,7 +188,7 @@ mod tests {
         gdr_offset: i64,
         version: CdfVersion,
         encoding: CdfEncoding,
-        flags: CdrFlags,
+        flags: &[bool],
         len_copyright: usize,
     ) -> Result<(), CdfError> {
         let path_test_file: PathBuf = [env!("CARGO_MANIFEST_DIR"), "examples", "data", filename]
@@ -222,7 +205,10 @@ mod tests {
         assert_eq!(*cdr.gdr_offset, gdr_offset);
         assert_eq!(cdr.cdf_version, version);
         assert_eq!(cdr.encoding, encoding);
-        assert_eq!(cdr.flags, flags,);
+        assert_eq!(cdr.row_major, flags[0]);
+        assert_eq!(cdr.single_file, flags[1]);
+        assert_eq!(cdr.has_checksum, flags[2]);
+        assert_eq!(cdr.md5_checksum, flags[3]);
         assert_eq!(*cdr.rfu_a, 0);
         assert_eq!(*cdr.rfu_b, 0);
         assert_eq!(*cdr.identifier, -1);

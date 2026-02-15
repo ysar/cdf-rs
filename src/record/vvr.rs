@@ -85,7 +85,7 @@ pub struct VariableValuesRecord {
     pub record_size: CdfInt8,
     /// The type of record as defined in the CDF specfication as an integer.
     pub record_type: CdfInt4,
-    /// Records (finally, the actual DATA that is stored in the CDF.). Each record contains an
+    /// Records (finally, the actual DATA that is stored in the CDF!). Each record contains an
     /// array of data. The number of such records, and the dimension of each array is stored either
     /// in the GDR or RVDR in the case of rVariables, or
     /// in the ZVDR in the case of zVariables.
