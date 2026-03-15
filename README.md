@@ -150,12 +150,14 @@ It is a nice way to visualize the CDF structure.
 This is a new project and so will likely go through some revisions. Some parts of the CDF 
 specification are not currently implemented.
 
-If you are interested in helping, please raise an issue on Github with whatever you'd like to work 
-on.  
+I wrote this mainly over winter break and have been busy with my day job since then. As it is, the
+code is usable and has a relatively good skeleton. Will make some improvements later and slowly as 
+I find time. If you are interested in helping, please raise an issue on Github with whatever you'd 
+like to work on.  
 
 *Short-Term Goals*  
 [ ] Improve the VXR and VVR decoding, either by providing a higher-level API to deal with the messy
- nestedness, or do away with nestedness while deserializing.  
+ nestedness, or do away with nestedness while deserializing.  (also, see issue #1)
 [ ] A proper test for the VXR and VVR.  
 [ ] Handle TimeTt2000, Epoch, and Epoch16 data types appropriately.  
 [ ] CDF versions after v3.8.1 support UTF-8 strings.  
