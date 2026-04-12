@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::decode::{decode_version3_int4_int8, Decodable, Decoder};
 use crate::error::CdfError;
 use crate::record::collection::RecordList;
-use crate::repr::Endian;
-use crate::types::{CdfInt4, CdfInt8, CdfType};
+use crate::types::{CdfInt4, CdfInt8};
 use std::io;
 
 /// Struct to store contents of an Attribute Entry Descriptor Record that stores information on
@@ -38,9 +37,9 @@ pub struct AttributeGREntryDescriptorRecord {
     pub rfu_d: CdfInt4,
     /// A value reserved for future use.
     pub rfu_e: CdfInt4,
-    /// The values stored inside this AGREDR.  When decoding, the type is inferred from the CDF
-    /// file, so it cannot be known at compile time.
-    pub value: Vec<CdfType>,
+    // /// The values stored inside this AGREDR.  When decoding, the type is inferred from the CDF
+    // /// file, so it cannot be known at compile time.
+    // pub value: Vec<CdfType>,
 }
 
 impl Decodable for AttributeGREntryDescriptorRecord {
@@ -95,12 +94,12 @@ impl Decodable for AttributeGREntryDescriptorRecord {
             )));
         }
 
-        // Read in the values of this attribute based on the encoding specified in the CDR.
-        let endianness = decoder.context.endianness()?;
-        let value = match endianness {
-            Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
-            Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
-        };
+        // // Read in the values of this attribute based on the encoding specified in the CDR.
+        // let endianness = decoder.context.endianness()?;
+        // let value = match endianness {
+        //     Endian::Big => CdfType::decode_vec_be(decoder, &data_type, &num_elements)?,
+        //     Endian::Little => CdfType::decode_vec_le(decoder, &data_type, &num_elements)?,
+        // };
 
         Ok(AttributeGREntryDescriptorRecord {
             record_size,
@@ -115,7 +114,7 @@ impl Decodable for AttributeGREntryDescriptorRecord {
             rfu_c,
             rfu_d,
             rfu_e,
-            value,
+            // value,
         })
     }
 

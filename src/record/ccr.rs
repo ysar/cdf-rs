@@ -23,8 +23,8 @@ pub struct CompressedCdfRecord {
     pub uncompressed_size: CdfInt8,
     /// Reserved for future use.
     pub rfu_a: CdfInt4,
-    /// Compressed CDF data as a vector of u8.
-    pub data: Vec<u8>,
+    // /// Compressed CDF data as a vector of u8.
+    // pub data: Vec<u8>,
 }
 
 impl Decodable for CompressedCdfRecord {
@@ -51,15 +51,15 @@ impl Decodable for CompressedCdfRecord {
             )));
         }
 
-        // Read the compressed data.
-        // prior to v3.0 there were no 8-byte ints.
-        let num_data = if decoder.context.version()?.major < 3 {
-            usize::try_from(*record_size)? - 20
-        } else {
-            usize::try_from(*record_size)? - 32
-        };
-        let mut data = vec![0u8; num_data];
-        decoder.reader.read_exact(&mut data)?;
+        // // Read the compressed data.
+        // // prior to v3.0 there were no 8-byte ints.
+        // let num_data = if decoder.context.version()?.major < 3 {
+        //     usize::try_from(*record_size)? - 20
+        // } else {
+        //     usize::try_from(*record_size)? - 32
+        // };
+        // let mut data = vec![0u8; num_data];
+        // decoder.reader.read_exact(&mut data)?;
 
         Ok(Self {
             record_size,
@@ -67,7 +67,7 @@ impl Decodable for CompressedCdfRecord {
             cpr_offset,
             uncompressed_size,
             rfu_a,
-            data,
+            // data,
         })
     }
     fn decode_le<R>(_: &mut Decoder<R>) -> Result<Self, CdfError>

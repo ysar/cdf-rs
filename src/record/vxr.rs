@@ -34,8 +34,8 @@ pub struct VariableIndexRecord {
     pub last_vec: Vec<Option<CdfInt4>>,
     /// File offset of the VVR, CVVR or lower level VXR.
     pub offset_vec: Vec<Option<CdfInt8>>,
-    /// Child record that are pointed to by this VXR.
-    pub children: Vec<Option<VariableIndexRecordChild>>,
+    // /// Child record that are pointed to by this VXR.
+    // pub children: Vec<Option<VariableIndexRecordChild>>,
 }
 
 impl Decodable for VariableIndexRecord {
@@ -84,30 +84,30 @@ impl Decodable for VariableIndexRecord {
             }
         }
 
-        let mut children: Vec<Option<VariableIndexRecordChild>> = Vec::with_capacity(n);
-        for i in 0..n {
-            if let Some(next) = &offset_vec[i] {
-                _ = decoder
-                    .reader
-                    .seek(SeekFrom::Start(u64::try_from(**next)?))?;
+        // let mut children: Vec<Option<VariableIndexRecordChild>> = Vec::with_capacity(n);
+        // for i in 0..n {
+        //     if let Some(next) = &offset_vec[i] {
+        //         _ = decoder
+        //             .reader
+        //             .seek(SeekFrom::Start(u64::try_from(**next)?))?;
 
-                // Each first and last vec combination gives the number of variable records stored
-                // in this group of this VXR.
-                let num_records = match (&first_vec[i], &last_vec[i]) {
-                    (Some(first), Some(last)) => usize::try_from(**last - **first + 1)
-                        .map_err(|e| CdfError::Decode(e.to_string())),
-                    _ => Err(CdfError::Decode(
-                        "first and last in VXR do not have matching Some value.".to_string(),
-                    )),
-                }?;
+        //         // Each first and last vec combination gives the number of variable records stored
+        //         // in this group of this VXR.
+        //         let num_records = match (&first_vec[i], &last_vec[i]) {
+        //             (Some(first), Some(last)) => usize::try_from(**last - **first + 1)
+        //                 .map_err(|e| CdfError::Decode(e.to_string())),
+        //             _ => Err(CdfError::Decode(
+        //                 "first and last in VXR do not have matching Some value.".to_string(),
+        //             )),
+        //         }?;
 
-                decoder.context.num_records = Some(num_records);
+        //         decoder.context.num_records = Some(num_records);
 
-                children.push(Some(VariableIndexRecordChild::decode_be(decoder)?));
-            } else {
-                children.push(None)
-            }
-        }
+        //         children.push(Some(VariableIndexRecordChild::decode_be(decoder)?));
+        //     } else {
+        //         children.push(None)
+        //     }
+        // }
 
         Ok(VariableIndexRecord {
             record_size,
@@ -118,7 +118,7 @@ impl Decodable for VariableIndexRecord {
             first_vec,
             last_vec,
             offset_vec,
-            children,
+            // children,
         })
     }
 
